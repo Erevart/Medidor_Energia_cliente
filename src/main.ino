@@ -16,7 +16,7 @@ extern "C" {
 #include "def.h"
 #include "GPIO.h"
 #include "Memoria.h"
-#include "ComWifi.h"
+#include "comtcp.h"
 #include "ESPWifi.h"
 
 void setup() {
@@ -41,7 +41,7 @@ void setup() {
 	/******************************/
 	/*   Configuración Wifi       */
 	/******************************/
-    lectura_eeprom();
+    comprobacion_usuarios_eeprom();
 
   /******************************/
   /*   Configuración Wifi       */
