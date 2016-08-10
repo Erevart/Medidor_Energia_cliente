@@ -1,158 +1,165 @@
 /*
 
- ComWifi.h - WiFi parameter for MCP-ESP comunication
+ comtcp.c - Funciones de comunicacion para la comunicación TCP entre dispositivos ESP8266 - ESP8266.
 
  */
 
 
 #include <Arduino.h>
-#include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
-
-
-/* Declaración de estructura */
-
-/* Declaración de funciones */
-
 
 /******************************************************************************
- * FunctionName : tcp_server_sent_cb
- * Description  : data sent callback.
- * Parameters   : arg -- Additional argument to pass to the callback function
- * Returns      : none
+ * Función : tcp_server_sent_cb
+ * @brief  : Callback cuando la comunicación tcp se finaliza. Indica que la
+             comunicación tcp ha finalizado.
+ * @param  : arg - puntero a la variable tipo espconn que determina la comunicación.
+ * @return : none
+ * Etiqueta debug : Todos los comentarios para depueración de esta función
+                   estarán asociados a la etiqueta: "TCP_DC_CB".
  *******************************************************************************/
 void tcp_server_sent_cb(void *arg)
 {
-    //data sent successfully
+    //Datos enviados correctamente
     transmision_finalizada = true;
-#ifdef _DEBUG_COMUNICACION
-    debug.println("TCP: TRANSMISION REALIZADA CORRECTAMENTE");
-#endif
+
+    #ifdef _DEBUG_COMUNICACION
+      debug.println("[TCP_ST_CB] TRANSMISION REALIZADA CORRECTAMENTE");
+    #endif
 
 }
 
 /******************************************************************************
- * FunctionName : tcp_server_discon_cb
- * Description  : disconnect callback.
- * Parameters   : arg -- Additional argument to pass to the callback function
- * Returns      : none
+ * Función : tcp_server_discon_cb
+ * @brief  : Callback cuando la comunicación tcp se finaliza. Indica que la
+             comunicación tcp ha finalizado.
+ * @param  : arg - puntero a la variable tipo espconn que determina la comunicación.
+ * @return : none
+ * Etiqueta debug : Todos los comentarios para depueración de esta función
+                   estarán asociados a la etiqueta: "TCP_DC_CB".
  *******************************************************************************/
 void tcp_server_discon_cb(void *arg)
 {
+  // Comunicación cerrada correctamente.
   tcp_desconectado = true;
   tcp_establecido = false;
   transmision_finalizada = true;
   tcp_recibido = false;
 
-  //tcp disconnect successfully
-#ifdef _DEBUG_COMUNICACION
-    debug.println("TCP: DESCONEXION REALIZADA CORRECTAMENTE");
-#endif
+  #ifdef _DEBUG_COMUNICACION
+    debug.println("[TCP_DC_CB] DESCONEXION REALIZADA CORRECTAMENTE");
+  #endif
 }
 
 /******************************************************************************
- * FunctionName : tcp_server_recon_cb
- * Description  : reconnect callback, error occured in TCP connection.
- * Parameters   : arg -- Additional argument to pass to the callback function
- * Returns      : none
+ * Función : tcp_server_recon_cb
+ * @brief  : Callback cuando la comunicación tcp es interrumpida. Indica que la
+             comunicación tcp ha sido forzada a cerrarse.
+ * @param  : arg - puntero a la variable tipo espconn que determina la comunicación.
+ * @return : none
+ * Etiqueta debug : Todos los comentarios para depueración de esta función
+                   estarán asociados a la etiqueta: "TCP_RC_CB".
  *******************************************************************************/
-void tcp_server_recon_cb(void *arg, sint8 err)
-{
-    //error occured , tcp connection broke.
+void tcp_server_recon_cb(void *arg, sint8 err){
+
+    int8_t info_envio;
+    unsigned long time0;
+
+    // Se ha producido una fallo, y la conexión ha sido cerrada.
     tcp_desconectado = true;
     tcp_establecido = false;
     transmision_finalizada = true;
     tcp_recibido = false;
 
-#ifdef _DEBUG_COMUNICACION
-    debug.println("TCP: CONEXION INTERRUMPIDA. CODIGO DE ERROR: ");
-    debug.println(err);
-#endif
+    #ifdef _DEBUG_COMUNICACION
+        debug.print("[TCP_RC_CB] CONEXION INTERRUMPIDA. CODIGO DE ERROR: ");
+        debug.println(err);
+    #endif
 
-    int8_t res_envio = espconn_disconnect(esp_conn);
+    /* AÚN NO COMPROBADO */
+    info_envio = espconn_disconnect(esp_conn);
 
-    unsigned long time0;
     time0 = millis();
     while (!tcp_desconectado) {
       yield();
 
-      if (res_envio != ESPCONN_OK)
-         res_envio = espconn_disconnect(esp_conn);
+      if (info_envio != ESPCONN_OK)
+         info_envio = espconn_disconnect(esp_conn);
 
       if ((millis()-time0)>MAX_ESPWIFI){
         return;
       }
     }
+    #ifdef _DEBUG_COMUNICACION
+      debug.print("[TCP_RC_CB] Comunicacion TCP cerrada. Tiempo requerido: ");
+      debug.println(millis()-time0);
+    #endif
+    /* AÚN NO COMPROBADO */
 }
 
 /******************************************************************************
- * FunctionName : tcp_server_recv_cb
- * Description  : receive callback.
- * Parameters   : arg -- Additional argument to pass to the callback function
- * Returns      : none
+ * Función : tcp_server_recv_cb
+ * @brief  : Callback cuando se recibe información del cliente. Permite leer la
+             la trama de datos recibida e identificar la operación solicitada.
+ * @param  : arg - puntero a la variable tipo espconn que determina la comunicación.
+ * @return : none
+ * Etiqueta debug : Todos los comentarios para depueración de esta función
+                   estarán asociados a la etiqueta: "TCP_RV_CB".
  *******************************************************************************/
 void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
 {
-    //received some data from tcp connection
-    struct espconn *pespconn = static_cast<struct espconn *> (arg);
 
-#ifdef _DEBUG_COMUNICACION_LIMIT
-    debug.println("TCP RECV: INICIO comunicacion.");
-#endif
-
-#ifdef _DEBUG_COMUNICACION
-    debug.print("TCP RECV: Cliente conectado. Timecounter: ");
-    debug.println(timecounter);
-    unsigned long t0 = millis();
-#endif
-
-    // Hay un cliente conectado y a transmidos información. Esta procesada.
-#ifdef _DEBUG_COMUNICACION
-    debug.print("TCP RECV: Numero de datos recibidos: ");
-    debug.println(length);
-#endif
+  #ifdef _DEBUG_COMUNICACION_LIMIT
+      debug.print("[TCP_RV_CB] Recepcion de datos. Numero de datos recibidos: ");
+      debug.println(length);
+      debug.print("[TCP_RV_CB] Información recibida: ");
+      debug.println(tcp_data);
+  #endif
 
     /* PROCESAMIENTO DE LA INFORMACIÓN RECIBIDA */
     switch (tcp_data[0]) {
-      case 'S':
-          break;
-
-      case '!':
-        Serial.println(tcp_data);
-        break;
 
       case WACK:
         registro_confirmado = true;
         break;
 
       default:
-#ifdef _DEBUG_COMUNICACION
-      debug.println("Default");
-#endif
-        break;
+      #ifdef _DEBUG_COMUNICACION
+        debug.println("[TCP_RV_CB]: Operacion no identificado.");
+      #endif
+      break;
+
+      // Operación de debug.
+      #ifdef _DEBUG_COMUNICACION
+        case '!':
+          Serial.println(tcp_data);
+          break;
+      #endif
       }
 
-#ifdef _DEBUG_COMUNICACION_LIMIT
-    debug.print("TCP RECV: FIN comunicacion. Tiempo requerido: ");
-    debug.println(millis()-t0);
-#endif
+    #ifdef _DEBUG_COMUNICACION
+        debug.print("TCP RECV: FIN comunicacion.");
+    #endif
+
+
 
     tcp_recibido = true;
 }
 
 /******************************************************************************
- * FunctionName : tcp_server_listen
- * Description  : TCP server listened a connection successfully
- * Parameters   : arg -- Additional argument to pass to the callback function
- * Returns      : none
+ * Función : tcp_listen
+ * @brief  : Callback cuando se establece la comunicación TCP. Permite identificar
+             cuando se ha iniciado a la comunicación y establecer las funciones
+             de Callback para los distintos eventos de la comunicación TCP.
+ * @param  : arg - puntero a la variable tipo espconn que determina la comunicación.
+ * @return : none
+ * Etiqueta debug : Todos los comentarios para depueración de esta función
+                   estarán asociados a la etiqueta: "TCPL".
  *******************************************************************************/
 void tcp_listen(void *arg)
 {
-#ifdef _DEBUG_COMUNICACION
-    debug.println("TCP: Comunicacion iniciada");
-#endif
+    #ifdef _DEBUG_COMUNICACION
+        debug.println("[TCPL] Comunicacion iniciada");
+    #endif
     struct espconn *pesp_conn = static_cast<struct espconn *> (arg);
-//    esp_conn = pesp_conn;
 
    /* Función llamada cuando se reciben datos */
    espconn_regist_recvcb(pesp_conn, tcp_server_recv_cb);
@@ -162,7 +169,6 @@ void tcp_listen(void *arg)
    espconn_regist_disconcb(pesp_conn, tcp_server_discon_cb);
    /* Función llamada cuando los datos se han enviado correctamente */
    espconn_regist_sentcb(pesp_conn, tcp_server_sent_cb);
-//    tcp_server_multi_send();
 
    tcp_establecido = true;
    tcp_desconectado = false;
@@ -642,9 +648,16 @@ bool confirmar_conexion(uint32_t host){
   }
 }
 
-/**
-*
-**/
+/******************************************************************************
+ * Función : guardar_red
+ * @brief  : Lee de la memoria EEPROM los usuarios registrados y los registra en
+             la estructura de datos "red".
+ * @param  : red - puntero de la estructura de datos donde está el número
+              de usuarios registrados y su correspondiente MAC.
+ * @return : none
+ * Etiqueta debug : Todos los comentarios para depuración de esta función
+                   estarán asociados a la etiqueta: "MGR".
+ *******************************************************************************/
 void tcp_comunication(const uint32_t host){
 
   union {
