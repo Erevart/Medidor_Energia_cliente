@@ -41,7 +41,7 @@ void setup() {
 	/******************************/
 	/*   Configuración Wifi       */
 	/******************************/
-    comprobar_eeprom();
+    lectura_eeprom();
 
   /******************************/
   /*   Configuración Wifi       */
