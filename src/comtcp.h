@@ -248,8 +248,8 @@ void configWifi(){
       debug.print(ssid[i]);
     }
 
-    debug.println("\nWiFi establecida");
-    debug.println("IP address: ");
+    debug.println("\n[CONFW] WiFi establecida");
+    debug.println("[CONFW] IP address: ");
     debug.println(WiFi.softAPIP());
   #endif
 
