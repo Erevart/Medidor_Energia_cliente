@@ -151,7 +151,7 @@ void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
              de Callback para los distintos eventos de la comunicación TCP.
  * @param  : arg - puntero a la variable tipo espconn que determina la comunicación.
  * @return : none
- * Etiqueta debug : Todos los comentarios para depueración de esta función
+ * Etiqueta debug : Todos los comentarios para depuración de esta función
                    estarán asociados a la etiqueta: "TCPL".
  *******************************************************************************/
 void tcp_listen(void *arg)
@@ -187,6 +187,17 @@ void tcp_listen(void *arg)
  * IP: 192.168.1.100, Puerta de enlace: 192.168.1.255, Mascara: 255.255.255.0
  * SSID: MCESP_SINCRONIZANDO, contraseña: zxcvmnbv1234
 **/
+/******************************************************************************
+ * Función : configWifi
+ * @brief  : Establece la configuración de la red Wifi, la cual será utilizada para
+              actuar como cliente de un servidor. Parametros por defecto de la red para AP:
+              IP: 192.168.1.0, Puerta de enlace: 192.168.1.255, Mascara: 255.255.255.0
+              SSID: MCESP_'IDCHIP', contraseña: zxcvmnbv1234.
+ * @param  : none
+ * @return : none
+ * Etiqueta debug : Todos los comentarios para depuración de esta función
+                   estarán asociados a la etiqueta: "CONFW".
+ *******************************************************************************/
 void configWifi(){
 
   String st_ssid;
@@ -194,9 +205,8 @@ void configWifi(){
   softap_config));
   struct ip_info info;
   struct dhcps_lease dhcp_lease;
-/*
-  // Se establece modo Acces Point
-  WiFi.mode(WIFI_AP);
+
+  wifi_set_opmode(SOFTAP_MODE);
 
   // Se establece la Red Wifi donde se establecerá el módulo como servidor
   st_ssid = String(  String( PRE_SSID ) +  String( ESP.getChipId() ) );
@@ -204,81 +214,53 @@ void configWifi(){
   uint8_t len = st_ssid.length();
   char ssid[len];
   st_ssid.toCharArray(ssid,len+1);
-  // Se establece la Wifi
-  WiFi.softAP(ssid,CONTRASENA);
-
-  // Se recomienda deshabilitar el servicio dhcp, para modificar la configuración.
-  wifi_softap_dhcps_stop();
-  IPAddress ip(192,168,1,1);
-  IPAddress gateway(192,168,1,255);
-  IPAddress subnet(255,255,255,0);
-  WiFi.softAPConfig(ip, gateway, subnet);
 
   // Se obtiene la configuración previamente cargada.
   wifi_softap_get_config(config);
+  strcpy(reinterpret_cast<char*>(config->ssid),ssid);
+  strcpy(reinterpret_cast<char*>(config->password), CONTRASENA);
+  config->authmode = AUTH_WPA_WPA2_PSK;
   config->max_connection = MAX_USUARIOS;
   config->ssid_hidden = HIDDEN_DEFAULT;
   config->beacon_interval = BEACON_INTERVAL;
+
   // Las nuevas modificaciones son grabadas en la memoria flash.
   wifi_softap_set_config_current(config);
   free(config);
 
-  wifi_softap_dhcps_start();
-*/
-    wifi_set_opmode(SOFTAP_MODE);
+  // Se establece la configuracion del DHCP
+  wifi_softap_dhcps_stop();  // disable soft-AP DHCP server
+  IP4_ADDR(&info.ip, 192, 168, 1, 0); // set IP
+  IP4_ADDR(&info.gw, 192, 168, 1, 255); // set gateway
+  IP4_ADDR(&info.netmask, 255, 255, 255, 0); // set netmask
+  wifi_set_ip_info(SOFTAP_IF, &info);
 
-    // Se establece la Red Wifi donde se establecerá el módulo como servidor
-    st_ssid = String(  String( PRE_SSID ) +  String( ESP.getChipId() ) );
+  // Se india el rango de ip que puede ofrecer el servicio de DHCP
+  IP4_ADDR(&dhcp_lease.start_ip, 192, 168, 1, 1);
+  IP4_ADDR(&dhcp_lease.end_ip, 192, 168, 1, 254);
+  wifi_softap_set_dhcps_lease(&dhcp_lease);
+  wifi_softap_dhcps_start(); // enable soft-AP DHCP server
 
-    uint8_t len = st_ssid.length();
-    char ssid[len];
-    st_ssid.toCharArray(ssid,len+1);
-
-    // Se obtiene la configuración previamente cargada.
-    wifi_softap_get_config(config);
-    strcpy(reinterpret_cast<char*>(config->ssid),ssid);
-    strcpy(reinterpret_cast<char*>(config->password), CONTRASENA);
-    config->authmode = AUTH_WPA_WPA2_PSK;
-    config->max_connection = MAX_USUARIOS;
-    config->ssid_hidden = HIDDEN_DEFAULT;
-    config->beacon_interval = BEACON_INTERVAL;
-
-    // Las nuevas modificaciones son grabadas en la memoria flash.
-    wifi_softap_set_config_current(config);
-    free(config);
-
-    // Se establece la configuracion del DHCP
-    wifi_softap_dhcps_stop();  // disable soft-AP DHCP server
-    IP4_ADDR(&info.ip, 192, 168, 1, 0); // set IP
-    IP4_ADDR(&info.gw, 192, 168, 1, 255); // set gateway
-    IP4_ADDR(&info.netmask, 255, 255, 255, 0); // set netmask
-    wifi_set_ip_info(SOFTAP_IF, &info);
-
-    // Se india el rango de ip que puede ofrecer el servicio de DHCP
-    IP4_ADDR(&dhcp_lease.start_ip, 192, 168, 1, 1);
-    IP4_ADDR(&dhcp_lease.end_ip, 192, 168, 1, 254);
-    wifi_softap_set_dhcps_lease(&dhcp_lease);
-    wifi_softap_dhcps_start(); // enable soft-AP DHCP server
-
-#ifdef _DEBUG_WIFI
-    debug.print("SSID: ");
+  #ifdef _DEBUG_WIFI
+    debug.print("[CONFW] SSID: ");
     debug.println(st_ssid);
     for(int i = 0; i < len; i++){
       debug.print(ssid[i]);
     }
-#endif
+
     debug.println("\nWiFi establecida");
     debug.println("IP address: ");
     debug.println(WiFi.softAPIP());
+  #endif
 
-    esp_conn = (struct espconn *)os_malloc((uint32)sizeof(struct espconn));
-    esp_conn->type = ESPCONN_TCP;
-    esp_conn->state = ESPCONN_NONE;
-    esp_conn->proto.tcp = (esp_tcp *)os_malloc((uint32)sizeof(esp_tcp));
-    esp_conn->proto.tcp->remote_port = MCPESP_SERVER_PORT;
+  esp_conn = (struct espconn *)os_malloc((uint32)sizeof(struct espconn));
+  esp_conn->type = ESPCONN_TCP;
+  esp_conn->state = ESPCONN_NONE;
+  esp_conn->proto.tcp = (esp_tcp *)os_malloc((uint32)sizeof(esp_tcp));
+  esp_conn->proto.tcp->remote_port = MCPESP_SERVER_PORT;
 
 
-    return;
+  return;
 }
 
 /**
