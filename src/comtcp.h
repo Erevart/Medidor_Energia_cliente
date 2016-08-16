@@ -177,16 +177,6 @@ void tcp_listen(void *arg)
 
 }
 
-/**
- * Establece la configuración de la red Wifi, la cual será utilizada para
- * actuar como cliente de un servidor.
- * Parametros por defecto de la red para AP:
- * IP: 192.168.1.100, Puerta de enlace: 192.168.1.255, Mascara: 255.255.255.0
- * SSID: MCESP_'IDCHIP', contraseña: zxcvmnbv1234
- * Parametros para sincronizacion de dispositivos:
- * IP: 192.168.1.100, Puerta de enlace: 192.168.1.255, Mascara: 255.255.255.0
- * SSID: MCESP_SINCRONIZANDO, contraseña: zxcvmnbv1234
-**/
 /******************************************************************************
  * Función : configWifi
  * @brief  : Establece la configuración de la red Wifi, la cual será utilizada para
@@ -329,18 +319,14 @@ bool conexion_servidor(const uint32_t host, bool check_conex){
 
 /*
     sint8_t ret = espconn_disconnect(esp_conn);
-
     debug.println("espconn_disconnect: ");
     debug.println(ret);
-
     ret = espconn_delete(esp_conn);
-
     debug.println("espconn_delete: ");
     debug.println(ret);
 */
 /*
     ret = espconn_set_opt(esp_conn,ESPCONN_REUSEADDR);
-
     debug.println("espconn_set_opt: ");
     debug.println(ret);
 */
@@ -411,60 +397,16 @@ bool conexion_servidor(const uint32_t host, bool check_conex){
     return true;
 }
 
-/**
-**/
-void comunicacion_servidor(){
 
-    unsigned long time0;
-
-    if (!transmision_finalizada || tcp_desconectado){
-      return;
-    }
-
-    #ifdef _DEBUG_COMUNICACION_LIMIT
-      debug.println("COMUNICACION SERVIDOR: INICIO comunicacion.");
-    #endif
-
-    transmision_finalizada = false;
-
-    uint8_t psent[1];
-    psent[0] = '!';
-
-  #ifdef _DEBUG_COMUNICACION
-    int8_t res_envio = espconn_send(esp_conn, psent , 1);
-    time0 = millis();
-    while (res_envio != ESPCONN_OK){
-      yield();
-
-      if (res_envio != ESPCONN_OK)
-         res_envio = espconn_send(esp_conn, psent , 1);
-
-         debug.print("COMUNICACION SERVIDOR: Codigo de envio: ");
-         debug.println(res_envio);
-
-      if ((millis()-time0)>MAX_ESPWIFI){
-         return;
-       }
-    }
-  #else
-    time0 = millis();
-    while (espconn_send(esp_conn, psent , 1) != ESPCONN_OK){
-      yield();
-      if ((millis()-time0)>MAX_ESPWIFI){
-        return;
-      }
-    }
-  #endif
-
-  #ifdef _DEBUG_COMUNICACION_LIMIT
-      debug.print("COMUNICACION SERVIDOR: Cliente conectado. Timecounter: ");
-      debug.println(timecounter);
-  #endif
-
-}
-
-/**
-**/
+/******************************************************************************
+ * Función : confirmar_conexion
+ * @brief  :
+ * @param  : host - ip del dispositivo del que se desea comprobar que la conexion está establecida.
+ * @return : true - La conexión entre los dipositivos esta correctamente establecida.
+ * @return : false - La conexión entre los dispositivos no se ha podido establecer correctamente.
+ * Etiqueta debug : Todos los comentarios para depuración de esta función
+                   estarán asociados a la etiqueta: "CFCNX".
+ *******************************************************************************/
 bool confirmar_conexion(uint32_t host){
 
   int8_t res_envio;
@@ -474,17 +416,20 @@ bool confirmar_conexion(uint32_t host){
   registro_confirmado = false;
 
   #ifdef _DEBUG_COMUNICACION
-  debug.print("REGISTRO_CONEXION: Se intenta establecer conexion con el servidor: ");
-  debug.println(host,HEX);
+    debug.print("[CFCNX] Se intenta establecer conexion con el servidor: ");
+    debug.println(host,HEX);
   #endif
+
+  // Se establece conexión con el dispositivo.
   if (!conexion_servidor(host,true)){
     prev_host = 0;
     return false;
   }
   #ifdef _DEBUG_COMUNICACION
-  debug.println("REGISTRO_CONEXION: Conexion establecida?");
+  debug.println("[CFCNX] Conexion establecida?");
   #endif
 
+  // Se espera a que la comunicación tcp sea establecida.
   time0 = millis();
   while (!tcp_establecido) {
     yield();
@@ -495,39 +440,39 @@ bool confirmar_conexion(uint32_t host){
 
   if (tcp_establecido){
 
-//    tcp_establecido = false;
-//    tcp_desconectado = false;
-
     #ifdef _DEBUG_COMUNICACION
-    debug.print("REGISTRO_CONEXION: Si, la conexion se ha establecido. Tiempo requerido: ");
+    debug.print("[CFCNX] Si, la conexion se ha establecido. Tiempo requerido: ");
     debug.println(millis()-time0);
-    debug.println("REGISTRO_CONEXION: Se envia respuesta de confirmacion de registro.");
+    debug.println("[CFCNX] Se envia respuesta de confirmacion de registro.");
     time0 = millis();
     #endif
 
+   // Se envia comando de registro.
    uint8_t psent[1];
    psent[0] = USUARIO_REGISTRADO;
 
    time0 = millis();
    #ifdef _DEBUG_COMUNICACION
-   res_envio = espconn_send(esp_conn, psent , 1);
+     res_envio = espconn_send(esp_conn, psent , 1);
 
-  while (!transmision_finalizada){
-     yield();
+    // Se espera a que la transmisión se haya completado.
+    while (!transmision_finalizada){
+       yield();
 
-     if (res_envio != ESPCONN_OK)
-        res_envio = espconn_send(esp_conn, psent , 1);
+       if (res_envio != ESPCONN_OK)
+          res_envio = espconn_send(esp_conn, psent , 1);
 
-     debug.print("REGISTRO_CONEXION: Codigo de envio: ");
-     debug.println(res_envio);
+       debug.print("[CFCNX] Codigo de envio: ");
+       debug.println(res_envio);
 
-     if ((millis()-time0)>MAX_ESPWIFI){
-       return false;
+       if ((millis()-time0)>MAX_ESPWIFI){
+         return false;
+       }
      }
-   }
    #else
     res_envio = espconn_send(esp_conn, psent , 1);
 
+    // Se espera a que la transmisión se haya completado.
     while (!transmision_finalizada){
        yield();
 
@@ -538,15 +483,17 @@ bool confirmar_conexion(uint32_t host){
          return false;
        }
      }
-     #endif
-
-
-     #ifdef _DEBUG_COMUNICACION
-   debug.print("REGISTRO_CONEXION: Se ha enviado codigo de registro. Tiempo requerido: ");
-   debug.println(millis()-time0);
-   debug.println("REGISTRO_CONEXION: A espera de la confirmacion de la transmision.");
    #endif
 
+   #ifdef _DEBUG_COMUNICACION
+     debug.print("[CFCNX] Se ha enviado codigo de registro. Tiempo requerido: ");
+     debug.println(millis()-time0);
+     debug.println("[CFCNX] A espera de la confirmacion de la transmision.");
+   #endif
+
+   // Se espera confirmacion de la del registro del dispositivo.
+   // En caso de no ser recibida se considera que la conexión se ha roto,
+   // y no es posible afirmar la conexión con el dispositivo.
    time0 = millis();
    while (!registro_confirmado) {
      yield();
@@ -556,9 +503,9 @@ bool confirmar_conexion(uint32_t host){
    }
 
  #ifdef _DEBUG_COMUNICACION
-   debug.print("REGISTRO_CONEXION: Confirmacion del registro. Tiempo requerido: ");
+   debug.print("[CFCNX] Confirmacion del registro. Tiempo requerido: ");
    debug.println(millis()-time0);
-   debug.println("REGISTRO_CONEXION: A espera del cierre de la comunicacion.");
+   debug.println("[CFCNX] A espera del cierre de la comunicacion.");
  #endif
 
   psent[0] = '#';
@@ -574,7 +521,7 @@ bool confirmar_conexion(uint32_t host){
       if (res_envio != ESPCONN_OK)
          res_envio = espconn_send(esp_conn, psent , 1);
 
-      debug.print("REGISTRO_CONEXION: Codigo de envio: ");
+      debug.print("[CFCNX] Codigo de envio: ");
       debug.println(res_envio);
 
       if ((millis()-time0)>MAX_ESPWIFI){
@@ -596,6 +543,7 @@ bool confirmar_conexion(uint32_t host){
       }
   #endif
 
+  // Se espera a que la comunicación sea cerrada.
   time0 = millis();
   while (!tcp_desconectado) {
     yield();
@@ -604,27 +552,25 @@ bool confirmar_conexion(uint32_t host){
       return false;
     }
   }
-  prev_host = 0;
 
   #ifdef _DEBUG_COMUNICACION
-     debug.print("REGISTRO_CONEXION: Comunicacion TCP cerrada. Tiempo requerido: ");
-     debug.println(millis()-time0);
-     #endif
+    debug.print("[CFCNX] Comunicacion TCP cerrada. Tiempo requerido: ");
+    debug.println(millis()-time0);
+  #endif
 
   }
 
   if (registro_confirmado) {
-    //    registro_confirmado = false;
     #ifdef _DEBUG_COMUNICACION
-       debug.println("REGISTRO_CONEXION: ------------------------------------------------------------------");
-       debug.print("REGISTRO_CONEXION: Sincronizacion realizada con exito. Tiempo requerido:");
+       debug.println("[CFCNX] ------------------------------------------------------------------");
+       debug.print("[CFCNX] Sincronizacion realizada con exito. Tiempo requerido:");
        debug.println(millis()-time0);
-       debug.println("REGISTRO_CONEXION: ------------------------------------------------------------------");
+       debug.println("[CFCNX] ------------------------------------------------------------------");
     #endif
     return true;
   } else {
     #ifdef _DEBUG_COMUNICACION
-      debug.println("REGISTRO_CONEXION: Sincronizacin fallida");
+      debug.println("[CFCNX] Sincronizacin fallida");
     #endif
     return false;
   }
