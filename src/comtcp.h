@@ -508,40 +508,19 @@ bool confirmar_conexion(uint32_t host){
    debug.println("[CFCNX] A espera del cierre de la comunicacion.");
  #endif
 
-  psent[0] = '#';
-  transmision_finalizada = false;
+   res_envio = espconn_disconnect(esp_conn);
 
-  time0 = millis();
-  #ifdef _DEBUG_COMUNICACION
-  res_envio = espconn_send(esp_conn, psent , 1);
+   time0 = millis();
+   while (!tcp_desconectado) {
+     yield();
 
-   while (!transmision_finalizada){
-      yield();
+     if (res_envio != ESPCONN_OK)
+        res_envio = espconn_disconnect(esp_conn);
 
-      if (res_envio != ESPCONN_OK)
-         res_envio = espconn_send(esp_conn, psent , 1);
-
-      debug.print("[CFCNX] Codigo de envio: ");
-      debug.println(res_envio);
-
-      if ((millis()-time0)>MAX_ESPWIFI){
-        return false;
-      }
-    }
-  #else
-     res_envio = espconn_send(esp_conn, psent , 1);
-
-     while (!transmision_finalizada){
-        yield();
-
-        if (res_envio != ESPCONN_OK)
-           res_envio = espconn_send(esp_conn, psent , 1);
-
-        if ((millis()-time0)>MAX_ESPWIFI){
-          return false;
-        }
-      }
-  #endif
+     if ((millis()-time0)>MAX_ESPWIFI){
+       return;
+     }
+   }
 
   // Se espera a que la comunicación sea cerrada.
   time0 = millis();
