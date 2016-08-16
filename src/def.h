@@ -58,36 +58,42 @@
 #define MAX_PERIODO     10                                // Periodo tiempo para realizar las lecturas del chips (ms).
 // Solo es necesario indicar el periodo de tiempo en segundo con el que debe repetirse la tarea.
 // El tiempo se indica aqui ! // (ms* (MAX_PERIODO / 1000000))
-#define loop1       1
-#define loop2       2
-#define loop3       100
-#define loop4       700
-#define loop5       6000
+#define loop1       1         // Loop de 10 ms
+#define loop2       2         // Loop de 20 ms
+#define loop3       100       // Loop de 1s
+#define loop4       700       // Loop de 7s
+#define loop5       6000      // Loop de 1m
 
 /* Parametros Red WIFI */
 #define PRE_SSID "MCPESP_"
 #define CONTRASENA "zxcvmnbv1234"
+#define MCPESP_SERVER_PORT 23          // Puerto de conexión a los servidores.
+#define MAX_USUARIOS 255               // Número máximo de usuarios conectados a la red.
+#define HIDDEN_DEFAULT 1               // El ssid está oculto por defecto.
+#define BEACON_INTERVAL 50             // Periodo (ms) de envio de paquetes de confirmación de conexion wifi.
 
-#define MAX_INTENTOS 1           // Numero de intentos para establecer la comunicacion sino se ha tansmitido correctamente.
-#define TIEMPO_SINCRONIZACION 30000 // Tiempo de espera para realizar la sincronizacio en ms.
-#define TIEMPO_RESET 5000 // Tiempo de espera para realizar la sincronizacio en ms.
-#define TIEMPO_CONEXION 200 // Tiempo de espera para comprobar los usuarios conectados en ms.
-#define MAX_ESPWIFI 10000
-#define MCPESP_SERVER_PORT 23      // Puerto de conexión a los servidores.
-#define MAX_USUARIOS 255
-#define HIDDEN_DEFAULT 1  // El ssid está oculto por defecto.
-#define BEACON_INTERVAL 50
-#define USUARIO_REGISTRADO 0xEE
-#define WACK 0xCC
-#define DATOS_WIFI 0xEF // Hay datos Wifi
-#define ESPERA_BOTON 0x00
+#define TIEMPO_RESET 5000              // Tiempo de espera para el borrado de los datos
+#define TIEMPO_SINCRONIZACION 30000    // Tiempo de espera para realizar la sincronización en ms.
+
+/* Estados de sincronización */
+#define ESPERA_BOTON 0x00              // Espera
 #define ESPERA_USUARIOS 0x01
 #define SINCRONIZACION 0x02
 #define ACTUALIZACION 0x03
 
 
+/* Parametros Comunicacion ESP8266 - ESP8266 */
+#define MAX_ESPWIFI 15000              // Tiempo de espera antes de considerar que la comunicacion wifi ha sido perdida.
+#define USUARIO_REGISTRADO 0xEE        // Comando de registro del dispositivo.
+#define WACK 0xCC                      // ACK del comando "USUARIO_REGISTRADO".
+
+/* Parametros escritura y lectura en memoria */
+#define DATOS_WIFI 0xEF                // Indica que la memoria del dispositivo hay información gurdada respesto a la red de dipositivos.
+
+
 
 /* Declaración de estructura */
+// Estructura de identificación de los usuarios.
 typedef struct infousu{
   struct infousu *siguiente = NULL;   // Puntero al siguiente usuario.
   uint32_t ipdir = -1;                // Ip del usuario.
@@ -96,6 +102,7 @@ typedef struct infousu{
 
 } infousu;
 
+// Estructura de registro de los usuarios y control de número de usuarios conectados y registrados.
 typedef struct lista_usuarios {
   uint8_t numconex = 0;
   uint8_t numusu = 0;
@@ -105,13 +112,32 @@ typedef struct lista_usuarios {
 
 
 /* Prototipo de Funciones */
-void configWifi();
-bool conexion_servidor(uint32_t host);
-bool confirmar_conexion(uint32_t host, bool check_conex);
-void isrsinc();
-void _timersinc(void *);
-void actualizacion_estado_usuarios();
 
+
+// comtcp
+void tcp_server_sent_cb(void *arg);
+void tcp_server_discon_cb(void *arg);
+void tcp_server_recon_cb(void *arg, sint8 err);
+void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length);
+void tcp_listen(void *arg);
+void configWifi();
+
+// ESPWifi
+bool cmp_bssid(char *mac1, char *mac2);
+int8_t ins_usu (lista_usuarios *red, station_info *nuevo_usu);
+void actualizacion_estado_usuarios(lista_usuarios *red);
+void borrar_usuarios(lista_usuarios *red);
+void actualizar_red(lista_usuarios *red);
+void timersoft(void *pArg);
+void isrsinc();
+void isrWifi (WiFiEvent_t event);
+
+// Memoria
+void nvrWrite_u8(uint8_t value, unsigned int memaddr);
+uint8_t nvrRead_u8(unsigned int memaddr);
+void guardar_red(lista_usuarios *red);
+void leer_red(lista_usuarios *red );
+void comprobacion_usuarios_eeprom();
 
 /* Variables */
 uint32_t temp = 0;
