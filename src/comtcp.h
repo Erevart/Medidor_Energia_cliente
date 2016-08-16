@@ -253,164 +253,33 @@ void configWifi(){
   return;
 }
 
-/**
-**/
-bool conexion_servidor(const uint32_t host, bool check_conex){
-
-  union {
-    uint32_t value;
-    uint8_t byte[4];
-  } _host;
-
-  int8_t res_con;
-  unsigned long time0;
-
-
-  #ifdef _DEBUG_COMUNICACION_CONEXION
-    debug.print("CONEXION SERVIDOR: Direccion ip cliente actual: ");
-    debug.println(host,HEX);
-    debug.print("CONEXION SERVIDOR: Direccion ip cliente anterior: ");
-    debug.println(prev_host,HEX);
-  #endif
-
-  if ( host == prev_host || ((uint32_t) host & 0x00FFFFFF) != 0x0001A8C0){ // XX01A8C0 = 192.168.1.xxx
-
-  /*  remot_info *info_esp_con = NULL;
-    int8_t ret = espconn_get_connection_info(esp_conn,&info_esp_con,0);
-    #ifdef _DEBUG_COMUNICACION_CONEXION
-      debug.print("CONEXION SERVIDOR: Servidor conectado. Valor de get_connection_info: ");
-      debug.println(ret);
-      debug.println(info_esp_con->state);
-    #endif
-    if (info_esp_con->state != ESPCONN_NONE && info_esp_con->state != ESPCONN_CLOSE)
-  */
-    if (!check_conex)
-      return false;
-
-  }
-
-  if (host != prev_host && (prev_host != 0) && ((uint32_t) host & 0x00FFFFFF) == 0x0001A8C0 ) {
-
-#ifdef _DEBUG_COMUNICACION_CONEXION
-    debug.println("CONEXION SERVIDOR: Previa desconexion del comunicacion con el servidor anterior.");
-    debug.println("CONEXION SERVIDOR: Se envia codigo de desconexion.");
-#endif
-
-    uint8_t psent[1];
-    psent[0] = '#';
-    res_con = espconn_send(esp_conn, psent , 1);
-
-    time0 = millis();
-    while (!tcp_desconectado && !transmision_finalizada) {
-      yield();
-
-      if (res_con != ESPCONN_OK)
-         res_con = espconn_send(esp_conn, psent , 1);
-
-      if ((millis()-time0)>MAX_ESPWIFI){
-        return false;
-      }
-    }
-
-#ifdef _DEBUG_COMUNICACION
-   debug.print("REGISTRO_CONEXION: Comunicacion TCP cerrada. Tiempo requerido: ");
-   debug.println(millis()-time0);
-#endif
-
-/*
-    sint8_t ret = espconn_disconnect(esp_conn);
-    debug.println("espconn_disconnect: ");
-    debug.println(ret);
-    ret = espconn_delete(esp_conn);
-    debug.println("espconn_delete: ");
-    debug.println(ret);
-*/
-/*
-    ret = espconn_set_opt(esp_conn,ESPCONN_REUSEADDR);
-    debug.println("espconn_set_opt: ");
-    debug.println(ret);
-*/
-//   os_free(esp_conn);
-
-  }
-
-  prev_host = host;
-
- // if (!mcpesp_server.connected()) {
-
-#ifdef _DEBUG_COMUNICACION_CONEXION
-  debug.println("CONEXION SERVIDOR: Intentado establecer conexion con el servidor.");
-  time0 = millis();
-#endif
-
-//  esp_conn = (struct espconn *)os_malloc((uint32)sizeof(struct espconn));
-
-  _host.value = host;
-  esp_conn->type = ESPCONN_TCP;
-  esp_conn->state = ESPCONN_NONE;
-//  esp_conn->proto.tcp = (esp_tcp *)os_malloc((uint32)sizeof(esp_tcp));
-  esp_conn->proto.tcp->remote_port = MCPESP_SERVER_PORT;
-  esp_conn->proto.tcp->remote_ip[0] = _host.byte[0];
-  esp_conn->proto.tcp->remote_ip[1] = _host.byte[1];
-  esp_conn->proto.tcp->remote_ip[2] = _host.byte[2];
-  esp_conn->proto.tcp->remote_ip[3] = _host.byte[3];
-  espconn_regist_connectcb(esp_conn, tcp_listen);
-
-
-#ifdef _DEBUG_COMUNICACION_CONEXION
-  res_con = espconn_connect(esp_conn);
-
-  debug.print("CONEXION SERVIDOR: Aviso de conexion: ");
-  debug.println(res_con);
-
-  time0 = millis();
-  while(res_con != ESPCONN_OK){
-    debug.print("CONEXION SERVIDOR: Estableciendo conexión. Tiempo requerido: ");
-    debug.println(millis()-time0);
-
-    yield();
-
-    if (res_con == ESPCONN_ISCONN)
-      return true;
-
-    res_con = espconn_connect(esp_conn);
-
-    if ((millis()-time0)>MAX_ESPWIFI){
-      debug.println("CONEXION SERVIDOR: No establecida.");
-      return false;
-    }
-  }
-#else
-  time0 = millis();
-  while(espconn_connect(esp_conn) != ESPCONN_OK ){
-    yield();
-    if ((millis()-time0)>MAX_ESPWIFI){
-      return false;
-    }
-  }
-#endif
-
-#ifdef _DEBUG_COMUNICACION_CONEXION
-    debug.println("CONEXION SERVIDOR: Establecida.");
-#endif
-
-    return true;
-}
-
-
 /******************************************************************************
  * Función : confirmar_conexion
- * @brief  :
+ * @brief  : Comprueba que el dispositivo indicado se encuentra conectado a la red, y es posible
+              establecer una conexión TCP con el sin problemas.
  * @param  : host - ip del dispositivo del que se desea comprobar que la conexion está establecida.
- * @return : true - La conexión entre los dipositivos esta correctamente establecida.
+ * @return : true - La conexión entre los dipositivos se ha realizado correctamente.
  * @return : false - La conexión entre los dispositivos no se ha podido establecer correctamente.
  * Etiqueta debug : Todos los comentarios para depuración de esta función
                    estarán asociados a la etiqueta: "CFCNX".
  *******************************************************************************/
 bool confirmar_conexion(uint32_t host){
 
-  int8_t res_envio;
+  union {
+    uint32_t value;
+    uint8_t byte[4];
+  } _host;
+  int8_t info_tcp;
   unsigned long time0;
+
+  if (!transmision_finalizada || !tcp_desconectado){
+    return false;
+  }
+
+  // Se comprueba que la IP se encuentre en el rango de IPs posibles.
+  if (((uint32_t) host & 0x00FFFFFF) != 0x0001A8C0){ // XX01A8C0 = 192.168.1.xxx
+    return false;
+  }
 
   // Se indica previamente que el usuario no se encuentra conectado.
   registro_confirmado = false;
@@ -421,12 +290,45 @@ bool confirmar_conexion(uint32_t host){
   #endif
 
   // Se establece conexión con el dispositivo.
-  if (!conexion_servidor(host,true)){
-    prev_host = 0;
-    return false;
-  }
-  #ifdef _DEBUG_COMUNICACION
-  debug.println("[CFCNX] Conexion establecida?");
+  _host.value = host;
+  esp_conn->proto.tcp->remote_ip[0] = _host.byte[0];
+  esp_conn->proto.tcp->remote_ip[1] = _host.byte[1];
+  esp_conn->proto.tcp->remote_ip[2] = _host.byte[2];
+  esp_conn->proto.tcp->remote_ip[3] = _host.byte[3];
+  espconn_regist_connectcb(esp_conn, tcp_listen);
+
+
+  #ifdef _DEBUG_COMUNICACION_CONEXION
+    info_tcp = espconn_connect(esp_conn);
+
+    debug.print("[CFCNX] Aviso de conexion: ");
+    debug.println(info_tcp);
+
+    time0 = millis();
+    while(info_tcp != ESPCONN_OK){
+      debug.print("[CFCNX] Estableciendo conexión. Tiempo requerido: ");
+      debug.println(millis()-time0);
+
+      yield();
+
+      if (info_tcp == ESPCONN_ISCONN)
+        break;
+
+      info_tcp = espconn_connect(esp_conn);
+
+      if ((millis()-time0)>MAX_ESPWIFI){
+        debug.println("[CFCNX] No establecida.");
+        return false;
+      }
+    }
+  #else
+    time0 = millis();
+    while(espconn_connect(esp_conn) != ESPCONN_OK ){
+      yield();
+      if ((millis()-time0)>MAX_ESPWIFI){
+        return false;
+      }
+    }
   #endif
 
   // Se espera a que la comunicación tcp sea establecida.
@@ -437,6 +339,10 @@ bool confirmar_conexion(uint32_t host){
       return false;
     }
   }
+
+  #ifdef _DEBUG_COMUNICACION
+  debug.println("[CFCNX] Conexion establecida?");
+  #endif
 
   if (tcp_establecido){
 
@@ -453,31 +359,31 @@ bool confirmar_conexion(uint32_t host){
 
    time0 = millis();
    #ifdef _DEBUG_COMUNICACION
-     res_envio = espconn_send(esp_conn, psent , 1);
+     info_tcp = espconn_send(esp_conn, psent , 1);
 
     // Se espera a que la transmisión se haya completado.
     while (!transmision_finalizada){
        yield();
 
-       if (res_envio != ESPCONN_OK)
-          res_envio = espconn_send(esp_conn, psent , 1);
+       if (info_tcp != ESPCONN_OK)
+          info_tcp = espconn_send(esp_conn, psent , 1);
 
        debug.print("[CFCNX] Codigo de envio: ");
-       debug.println(res_envio);
+       debug.println(info_tcp);
 
        if ((millis()-time0)>MAX_ESPWIFI){
          return false;
        }
      }
    #else
-    res_envio = espconn_send(esp_conn, psent , 1);
+    info_tcp = espconn_send(esp_conn, psent , 1);
 
     // Se espera a que la transmisión se haya completado.
     while (!transmision_finalizada){
        yield();
 
-       if (res_envio != ESPCONN_OK)
-          res_envio = espconn_send(esp_conn, psent , 1);
+       if (info_tcp != ESPCONN_OK)
+          info_tcp = espconn_send(esp_conn, psent , 1);
 
        if ((millis()-time0)>MAX_ESPWIFI){
          return false;
@@ -508,17 +414,17 @@ bool confirmar_conexion(uint32_t host){
    debug.println("[CFCNX] A espera del cierre de la comunicacion.");
  #endif
 
-   res_envio = espconn_disconnect(esp_conn);
+   info_tcp = espconn_disconnect(esp_conn);
 
    time0 = millis();
    while (!tcp_desconectado) {
      yield();
 
-     if (res_envio != ESPCONN_OK)
-        res_envio = espconn_disconnect(esp_conn);
+     if (info_tcp != ESPCONN_OK)
+        info_tcp = espconn_disconnect(esp_conn);
 
      if ((millis()-time0)>MAX_ESPWIFI){
-       return;
+       return false;
      }
    }
 
@@ -556,14 +462,13 @@ bool confirmar_conexion(uint32_t host){
 }
 
 /******************************************************************************
- * Función : guardar_red
- * @brief  : Lee de la memoria EEPROM los usuarios registrados y los registra en
-             la estructura de datos "red".
- * @param  : red - puntero de la estructura de datos donde está el número
-              de usuarios registrados y su correspondiente MAC.
+ * Función : tcp_comunication
+ * @brief  : Establece una comunicación TCP con el dispositivo indicado. Una vez establecido
+              el canal de comunicación se le solicita la información deseada y se finaliza la comunicación.
+ * @param  : host - IP del usuario con el cual se desea establecer la comunicación TCP.
  * @return : none
  * Etiqueta debug : Todos los comentarios para depuración de esta función
-                   estarán asociados a la etiqueta: "MGR".
+                   estarán asociados a la etiqueta: "TCPCM".
  *******************************************************************************/
 void tcp_comunication(const uint32_t host){
 
@@ -580,12 +485,12 @@ void tcp_comunication(const uint32_t host){
   }
 
   #ifdef _DEBUG_COMUNICACION_CONEXION
-    debug.print("TCP_C: conexion con el servidor (direccion ip): ");
+    debug.print("[TCPCM] conexion con el servidor (direccion ip): ");
     debug.println(host,HEX);
   #endif
 
   #ifdef _DEBUG_COMUNICACION_CONEXION
-    debug.println("TCP_C: Intentado establecer conexion con el servidor.");
+    debug.println("[TCPCM] Intentado establecer conexion con el servidor.");
     time0 = millis();
   #endif
 
@@ -600,12 +505,12 @@ void tcp_comunication(const uint32_t host){
   #ifdef _DEBUG_COMUNICACION_CONEXION
     res_con = espconn_connect(esp_conn);
 
-    debug.print("TCP_C: Aviso de conexion: ");
+    debug.print("[TCPCM] Aviso de conexion: ");
     debug.println(res_con);
 
     time0 = millis();
     while(res_con != ESPCONN_OK){
-      debug.print("TCP_C: Estableciendo conexión. Tiempo requerido: ");
+      debug.print("[TCPCM] Estableciendo conexión. Tiempo requerido: ");
       debug.println(millis()-time0);
 
       yield();
@@ -616,7 +521,7 @@ void tcp_comunication(const uint32_t host){
       res_con = espconn_connect(esp_conn);
 
       if ((millis()-time0)>MAX_ESPWIFI){
-        debug.println("TCP_C: No establecida.");
+        debug.println("[TCPCM] No establecida.");
         return;
       }
     }
@@ -639,9 +544,9 @@ void tcp_comunication(const uint32_t host){
   }
 
   #ifdef _DEBUG_COMUNICACION_CONEXION
-      debug.print("TCP_C: Conexion establecida. Tiempo requerido: ");
+      debug.print("[TCPCM] Conexion establecida. Tiempo requerido: ");
       debug.println(millis()-time0);
-      debug.println("TCP_C: INICIO de la comunicacion.");
+      debug.println("[TCPCM] INICIO de la comunicacion.");
     #endif
 
     // Trama de datos que se desea enviar al servidor a través de tcp.
@@ -658,7 +563,7 @@ void tcp_comunication(const uint32_t host){
       if (res_envio != ESPCONN_OK)
          res_envio = espconn_send(esp_conn, psent , 1);
 
-         debug.print("TCP_C: Codigo de envio: ");
+         debug.print("[TCPCM] Codigo de envio: ");
          debug.println(res_envio);
 
       if ((millis()-time0)>MAX_ESPWIFI){
@@ -689,7 +594,7 @@ void tcp_comunication(const uint32_t host){
    }
 
   #ifdef _DEBUG_COMUNICACION_CONEXION
-     debug.print("TCP_C: Transmision realizada. Tiempo requerido: ");
+     debug.print("[TCPCM] Transmision realizada. Tiempo requerido: ");
      debug.println(millis()-time0);
   #endif
 
@@ -703,45 +608,28 @@ void tcp_comunication(const uint32_t host){
   tcp_recibido = false;
 
   #ifdef _DEBUG_COMUNICACION_CONEXION
-     debug.print("TCP_C: Información recepcionada. Tiempo requerido: ");
+     debug.print("[TCPCM] Información recepcionada. Tiempo requerido: ");
      debug.println(millis()-time0);
-     debug.println("TCP_C: Previa desconexion del comunicacion con el servidor anterior.");
-     debug.println("TCP_C: Se envia codigo de desconexion.");
+     debug.println("[TCPCM] Previa desconexion del comunicacion con el servidor anterior.");
+     debug.println("[TCPCM] Se envia codigo de desconexion.");
   #endif
-/*
-      psent[0] = '#';
-      res_con = espconn_send(esp_conn, psent , 1);
-      transmision_finalizada = false;
-      time0 = millis();
 
-      while (!transmision_finalizada){
-         yield();
+ res_envio = espconn_disconnect(esp_conn);
 
-         if (res_envio != ESPCONN_OK)
-            res_envio = espconn_send(esp_conn, psent , 1);
+ time0 = millis();
+ while (!tcp_desconectado) {
+   yield();
 
-         if ((millis()-time0)>MAX_ESPWIFI){
-           return;
-         }
-       }
-*/
-       res_envio = espconn_disconnect(esp_conn);
+   if (res_envio != ESPCONN_OK)
+      res_envio = espconn_disconnect(esp_conn);
 
-       time0 = millis();
-       while (!tcp_desconectado) {
-         yield();
-
-         if (res_envio != ESPCONN_OK)
-            res_envio = espconn_disconnect(esp_conn);
-
-         if ((millis()-time0)>MAX_ESPWIFI){
-           return;
-         }
-       }
-
+   if ((millis()-time0)>MAX_ESPWIFI){
+     return;
+   }
+ }
 
   #ifdef _DEBUG_COMUNICACION
-     debug.print("TCP_C:: Comunicacion TCP cerrada. Tiempo requerido: ");
+     debug.print("[TCPCM] Comunicacion TCP cerrada. Tiempo requerido: ");
      debug.println(millis()-time0);
   #endif
 
