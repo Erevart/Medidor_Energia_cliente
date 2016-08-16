@@ -132,7 +132,6 @@ struct lista_usuarios red_usuarios;
 struct infousu *usuario_conectado = NULL;
 uint32_t prev_host = 0;
 os_timer_t *timersinc = NULL;
-os_timer_t *timeractred = NULL;
 os_timer_t *timerreset = NULL;
 static struct espconn *esp_conn;
 bool tcp_establecido = false;
