@@ -113,7 +113,6 @@ typedef struct lista_usuarios {
 
 /* Prototipo de Funciones */
 
-
 // comtcp
 void tcp_server_sent_cb(void *arg);
 void tcp_server_discon_cb(void *arg);
@@ -121,6 +120,8 @@ void tcp_server_recon_cb(void *arg, sint8 err);
 void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length);
 void tcp_listen(void *arg);
 void configWifi();
+bool confirmar_conexion(uint32_t host);
+void tcp_comunication(const uint32_t host);
 
 // ESPWifi
 bool cmp_bssid(char *mac1, char *mac2);
@@ -139,29 +140,34 @@ void guardar_red(lista_usuarios *red);
 void leer_red(lista_usuarios *red );
 void comprobacion_usuarios_eeprom();
 
+
 /* Variables */
+struct lista_usuarios red_usuarios;       // Estructura con registro de diposisitivos conectados.
+struct infousu *usuario_conectado = NULL; // Estructura con información del dispositivo.
+static struct espconn *esp_conn;          // Estructura de comunicación TCP.
+
+os_timer_t *timersinc = NULL;             // Timer software para sincronización.
+os_timer_t *timerreset = NULL;            // Timer software para reset.
+
+unsigned long currentMillis = 0;          // Variable que indica el tiempo actual.
+unsigned long previousMillis = 0;         // Variable que indica el instante de tiempo en el que se realizo la ultima ejecucion del bucle principal.
+unsigned long loop2_previousTime = 0;     // Variable que indica el instante de tiempo en el que se ejecuto el loop2_
+
+/* Aún en pruebas */
 uint32_t temp = 0;
 uint32_t tension = 0;
 uint32_t corriente = 0;
 uint32_t frecuencia = 0;
+/* Aún en pruebas */
+uint32_t timecounter = 0;                 // Variable que indica el numero de iteracciones del bucle principal.
 
 
-unsigned long currentMillis = 0;    // Variable que indica el tiempo actual.
-unsigned long previousMillis = 0;   // Variable que indica el instante de tiempo en el que se realizo la ultima ejecucion del bucle principal.
-unsigned long loop2_previousTime = 0; // Variable que indica el instante de tiempo en el que se ejecuto el loop2_
-unsigned long loop1_previousTime = 0; // Variable que indica el instante de tiempo en el que se ejecuto el loop1_
-uint32_t timecounter = 0;           // Variable que indica el numero de iteracciones del bucle principal.
+uint8_t modo_sinc = 0x00;                 // Variable que indica es estado en el que se encuentra la máquina de estado,
+                                          // para la sincronización de los dispositivos.
 
-
-uint8_t modo_sinc = 0x00;
-struct lista_usuarios red_usuarios;
-struct infousu *usuario_conectado = NULL;
-uint32_t prev_host = 0;
-os_timer_t *timersinc = NULL;
-os_timer_t *timerreset = NULL;
-static struct espconn *esp_conn;
-bool tcp_establecido = false;
-bool registro_confirmado = false;
-bool transmision_finalizada = false;
-bool tcp_desconectado = true;
-bool tcp_recibido = false;
+bool tcp_establecido = false;             // Indica que la conexión TPC se ha estblecido con el servidor.
+bool registro_confirmado = false;         // Variable utilizada para verifizar que la confirmación de
+                                          // conexión se ha llevado a cabo correctamente.
+bool transmision_finalizada = false;      // Los datos enviados se ha transmitido correctamente.
+bool tcp_desconectado = true;             // La comunicación TCP ha sido finalizada.
+bool tcp_recibido = false;                // Indica si se ha recibido la información pediente de recibir.
