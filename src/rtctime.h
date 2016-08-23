@@ -1,6 +1,8 @@
 /******************************************************************************
  * Función : update_rtc_time
  * @brief  : Actualiza registro de tiempo de la memoria flash.
+ *            Nota: para utilizar esta función es necesario modificar la librería
+ *            print.cpp e incluir las funciones para representar datos de 64bits.
  * @param  : reset - variable que indica resetear el instante el contador de tiempo.
  * @return : none
  * Etiqueta debug : Todos los comentarios para depuración de esta función
@@ -107,6 +109,8 @@ void update_rtc_time(bool reset){
  * Función : update_rtc_time
  * @brief  : Proporciona el tiempo transcurrido desde la ultima sincronización
  *            del contador de tiempo.
+ *            Nota: para utilizar esta función es necesario modificar la librería
+              print.cpp e incluir las funciones para representar datos de 64bits.
  * @param  : nose
  * @return : uint64_t devuelve el valor del tiempo transcurrido desde el último reset
  *            del contador de tiempo.
