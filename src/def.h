@@ -22,7 +22,9 @@
 #define _DEBUG_COMUNICACION_CONEXION
 #define _DEBUG_COMUNICACION
 #define _DEBUG_COMUNICACION_LIMIT
-#define _DEBUG_MEMORIA  // Muuestra información relativa a la escritura y lectura en memoria.
+#define _DEBUG_MEMORIA  // Muestra información relativa a la escritura y lectura en memoria.
+#define _DEBUG_RTC      // Muestra el tiempo de funcionamiento del dispositivo desde la ultima sincronización.
+#define _DEBUG_RTC_TEST // Muestras el test de comparación entre las variables de tiempo del dispositovo.
 //#define _DEBUG_BSSID
 //#define _DEBUG_ERROR  // Muestra los mensajes de error.
 //#define _DEBUG_TX     // Muestra la información que transmitiría al MCP.
