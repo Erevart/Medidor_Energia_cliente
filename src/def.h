@@ -86,7 +86,7 @@
 #define MAX_ESPWIFI 15000              // Tiempo de espera antes de considerar que la comunicacion wifi ha sido perdida.
 #define USUARIO_REGISTRADO 0xEE        // Comando de registro del dispositivo.
 #define WACK 0xCC                      // ACK del comando "USUARIO_REGISTRADO".
-
+#define RTC_MAGIC 0x55aaaa55           // RTC_MAGIC
 /* Parametros escritura y lectura en memoria */
 #define DATOS_WIFI 0xEF                // Indica que la memoria del dispositivo hay información gurdada respesto a la red de dipositivos.
 
@@ -109,6 +109,14 @@ typedef struct lista_usuarios {
   struct infousu *usuarios = NULL;
 
 } lista_usuarios;
+
+// Estructura de datos RTC
+typedef struct {
+  uint64 timeAcc;
+  uint32 magic;
+  uint32 timeBase;
+} RTC_TIMER;
+
 
 
 /* Prototipo de Funciones */

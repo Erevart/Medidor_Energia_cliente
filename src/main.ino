@@ -10,6 +10,8 @@ extern "C" {
 #include "user_interface.h"
 #include <espconn.h>
 #include <mem.h>
+#include "ets_sys.h"
+#include "osapi.h"
 }
 
 #include "EEPROM.h"
@@ -18,6 +20,7 @@ extern "C" {
 #include "Memoria.h"
 #include "comtcp.h"
 #include "ESPWifi.h"
+#include "rtctime.h"
 
 void setup() {
 
@@ -97,6 +100,8 @@ void loop() {
     *************************************/
     if (timecounter % loop3 == 0){
       digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+
+      get_rtc_time();
 
       // Se realiza el cambio de usuarios para
       // establecer una comunicacion con ellos.

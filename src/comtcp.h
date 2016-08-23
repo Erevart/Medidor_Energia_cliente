@@ -13,7 +13,7 @@
              comunicación tcp ha finalizado.
  * @param  : arg - puntero a la variable tipo espconn que determina la comunicación.
  * @return : none
- * Etiqueta debug : Todos los comentarios para depueración de esta función
+ * Etiqueta debug : Todos los comentarios para depuración de esta función
                    estarán asociados a la etiqueta: "TCP_DC_CB".
  *******************************************************************************/
 void tcp_server_sent_cb(void *arg)
@@ -33,7 +33,7 @@ void tcp_server_sent_cb(void *arg)
              comunicación tcp ha finalizado.
  * @param  : arg - puntero a la variable tipo espconn que determina la comunicación.
  * @return : none
- * Etiqueta debug : Todos los comentarios para depueración de esta función
+ * Etiqueta debug : Todos los comentarios para depuración de esta función
                    estarán asociados a la etiqueta: "TCP_DC_CB".
  *******************************************************************************/
 void tcp_server_discon_cb(void *arg)
@@ -55,7 +55,7 @@ void tcp_server_discon_cb(void *arg)
              comunicación tcp ha sido forzada a cerrarse.
  * @param  : arg - puntero a la variable tipo espconn que determina la comunicación.
  * @return : none
- * Etiqueta debug : Todos los comentarios para depueración de esta función
+ * Etiqueta debug : Todos los comentarios para depuración de esta función
                    estarán asociados a la etiqueta: "TCP_RC_CB".
  *******************************************************************************/
 void tcp_server_recon_cb(void *arg, sint8 err){
@@ -101,7 +101,7 @@ void tcp_server_recon_cb(void *arg, sint8 err){
              la trama de datos recibida e identificar la operación solicitada.
  * @param  : arg - puntero a la variable tipo espconn que determina la comunicación.
  * @return : none
- * Etiqueta debug : Todos los comentarios para depueración de esta función
+ * Etiqueta debug : Todos los comentarios para depuración de esta función
                    estarán asociados a la etiqueta: "TCP_RV_CB".
  *******************************************************************************/
 void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
