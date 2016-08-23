@@ -149,6 +149,10 @@ void guardar_red(lista_usuarios *red);
 void leer_red(lista_usuarios *red );
 void comprobacion_usuarios_eeprom();
 
+// rtctime
+void update_rtc_time(bool reset);
+uint64_t get_rtc_time();
+
 
 /* Variables */
 struct lista_usuarios red_usuarios;       // Estructura con registro de diposisitivos conectados.
