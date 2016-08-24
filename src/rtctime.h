@@ -9,6 +9,7 @@
                    estarán asociados a la etiqueta: "URTC".
  *******************************************************************************/
 void update_rtc_time(bool reset){
+
   RTC_TIMER rtcTime;
   uint32_t rtc, brtc;
 
@@ -31,7 +32,6 @@ void update_rtc_time(bool reset){
       debug.println( rtcTime.timeBase );
     #endif
 
-    return;
   }
 
   #ifdef _DEBUG_RTC_TEST
@@ -83,10 +83,11 @@ void update_rtc_time(bool reset){
   rtcTime.timeAcc += ( ((uint64_t) (rtc - rtcTime.timeBase)) * ((uint64_t) ((brtc * 1000) >> 12)) );
 
   // Se actualiza la base de tiempo.
-  rtcTime.timeBase = brtc;
+  rtcTime.timeBase = rtc;
   system_rtc_mem_write(64, &rtcTime, sizeof(rtcTime));
 
   #ifdef _DEBUG_RTC
+    debug.println("[URTC]-----------------------------");
     debug.print("[URTC] RTC precision: ");
     debug.printLLNumber(rtcTime.timeAcc,10);
     debug.println();
@@ -99,7 +100,7 @@ void update_rtc_time(bool reset){
     debug.print(".");
     debug.printLLNumber( (rtcTime.timeAcc / 10000000) % 100,10);
     debug.println(" s");
-    debug.println("[URTC]-----------------------------\r\n");
+    debug.println("[URTC]-----------------------------");
   #endif
 
 }
@@ -118,40 +119,14 @@ void update_rtc_time(bool reset){
                    estarán asociados a la etiqueta: "GRTC".
  *******************************************************************************/
 uint64_t get_rtc_time(){
+
   RTC_TIMER rtcTime;
-  uint32_t rtc, brtc;
+
+  // Se actualiza el contador de tiempo.
+  update_rtc_time(false);
 
   // Se lee los parámetros de la estructura guardados en memoria.
   system_rtc_mem_read(64, &rtcTime, sizeof(rtcTime));
-
-  rtc = system_get_rtc_time();
-  brtc = system_rtc_clock_cali_proc();
-
-  // Se calcula el tiempo total que lleva funcionando el dispositivo
-  // desde la ultima puesta a cero del registro timeAcc.
-  rtcTime.timeAcc += ( ((uint64_t) (rtc - rtcTime.timeBase)) * ((uint64_t) ((brtc * 1000) >> 12)) );
-
-  // Se actualiza la base de tiempo.
-  rtcTime.timeBase = brtc;
-  system_rtc_mem_write(64, &rtcTime, sizeof(rtcTime));
-
-  #ifdef _DEBUG_RTC
-    debug.println("[GRTC]-----------------------------\r\n");
-    debug.print("[GRTC] RTC precision: ");
-    debug.printLLNumber(rtcTime.timeAcc,10);
-    debug.println();
-    debug.println("[GRTC] Tiempo encendido: ");
-    debug.print("[GRTC] - ");
-    debug.printLLNumber( rtcTime.timeAcc / 1000,10);
-    debug.println(" us");
-    debug.print("[GRTC] - ");
-    debug.printLLNumber((rtcTime.timeAcc / 10000000) / 100,10);
-    debug.print(".");
-    debug.printLLNumber( (rtcTime.timeAcc / 10000000) % 100,10);
-    debug.println(" s");
-    debug.println("[GRTC]-----------------------------\r\n");
-  #endif
-
 
   return rtcTime.timeAcc;
 }

@@ -10,8 +10,8 @@ extern "C" {
 #include "user_interface.h"
 #include <espconn.h>
 #include <mem.h>
-#include "ets_sys.h"
-#include "osapi.h"
+#include <ets_sys.h>
+#include <osapi.h>
 }
 
 #include "EEPROM.h"
@@ -19,7 +19,7 @@ extern "C" {
 #include "GPIO.h"
 #include "Memoria.h"
 #include "comtcp.h"
-#include "ESPWifi.h"
+#include "confwifi.h"
 #include "rtctime.h"
 
 void setup() {

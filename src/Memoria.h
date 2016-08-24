@@ -36,7 +36,7 @@ void guardar_red(lista_usuarios *red){
 
   if ( (red->numusu == 0) || red->numusu == nvrRead_u8(1) ){
   #ifdef _DEBUG_MEMORIA
-      debug.println("[GR] No hay usuarios registrados o nuevos. No se guarda nada.");
+      debug.println("[MGR] No hay usuarios registrados o nuevos. No se guarda nada.");
   #endif
     return;
   }

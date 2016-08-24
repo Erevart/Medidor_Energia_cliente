@@ -18,11 +18,11 @@
 /* -------------------------------------------------------------------------------------------------------------*/
 
 /* Parametros de Debug */
-#define _DEBUG_WIFI   // Muestra por puerto serie información relativa la configuracion wifi.
-#define _DEBUG_COMUNICACION // Muestra por puerto serie información relativa la comunicación TCP.
-#define _DEBUG_MEMORIA  // Muestra información relativa a la escritura y lectura en memoria.
-#define _DEBUG_RTC      // Muestra el tiempo de funcionamiento del dispositivo desde la ultima sincronización.
-#define _DEBUG_RTC_TEST // Muestras el test de comparación entre las variables de tiempo del dispositovo.
+//#define _DEBUG_WIFI   // Muestra por puerto serie información relativa la configuracion wifi.
+//#define _DEBUG_COMUNICACION // Muestra por puerto serie información relativa la comunicación TCP.
+//#define _DEBUG_MEMORIA  // Muestra información relativa a la escritura y lectura en memoria.
+//#define _DEBUG_RTC      // Muestra el tiempo de funcionamiento del dispositivo desde la ultima sincronización.
+//#define _DEBUG_RTC_TEST // Muestras el test de comparación entre las variables de tiempo del dispositovo.
 //#define _DEBUG_BSSID
 //#define _DEBUG_ERROR  // Muestra los mensajes de error.
 //#define _DEBUG_TX     // Muestra la información que transmitiría al MCP.
@@ -99,6 +99,7 @@ typedef struct infousu{
   uint32_t ipdir = -1;                // Ip del usuario.
   uint8_t *bssid;                     // BSSID del usuario
   int8_t estado = -1;                 // Estado del usuario: Conectado/true o Desconectado/false
+  uint64_t time_sync = 0;
 
 } infousu;
 
@@ -129,7 +130,7 @@ void tcp_server_recon_cb(void *arg, sint8 err);
 void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length);
 void tcp_listen(void *arg);
 void configWifi();
-bool confirmar_conexion(uint32_t host);
+bool confirmar_conexion(struct infousu *host);
 void tcp_comunication(const uint32_t host);
 
 // ESPWifi
@@ -181,6 +182,6 @@ uint8_t modo_sinc = 0x00;                 // Variable que indica es estado en el
 bool tcp_establecido = false;             // Indica que la conexión TPC se ha estblecido con el servidor.
 bool registro_confirmado = false;         // Variable utilizada para verifizar que la confirmación de
                                           // conexión se ha llevado a cabo correctamente.
-bool transmision_finalizada = false;      // Los datos enviados se ha transmitido correctamente.
+bool transmision_finalizada = true;      // Los datos enviados se ha transmitido correctamente.
 bool tcp_desconectado = true;             // La comunicación TCP ha sido finalizada.
 bool tcp_recibido = false;                // Indica si se ha recibido la información pediente de recibir.

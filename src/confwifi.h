@@ -7,6 +7,292 @@
 
 #include <Arduino.h>
 
+/******************************************************************************
+ * Función : configWifi
+ * @brief  : Establece la configuración de la red Wifi, la cual será utilizada para
+              actuar como cliente de un servidor. Parametros por defecto de la red para AP:
+              IP: 192.168.1.0, Puerta de enlace: 192.168.1.255, Mascara: 255.255.255.0
+              SSID: MCESP_'IDCHIP', contraseña: zxcvmnbv1234.
+ * @param  : none
+ * @return : none
+ * Etiqueta debug : Todos los comentarios para depuración de esta función
+                   estarán asociados a la etiqueta: "CONFW".
+ *******************************************************************************/
+void configWifi(){
+
+  String st_ssid;
+  struct softap_config *config = (struct softap_config *)malloc(sizeof(struct
+  softap_config));
+  struct ip_info info;
+  struct dhcps_lease dhcp_lease;
+
+  wifi_set_opmode(SOFTAP_MODE);
+
+  // Se establece la Red Wifi donde se establecerá el módulo como servidor
+  st_ssid = String(  String( PRE_SSID ) +  String( ESP.getChipId() ) );
+
+  uint8_t len = st_ssid.length();
+  char ssid[len];
+  st_ssid.toCharArray(ssid,len+1);
+
+  // Se obtiene la configuración previamente cargada.
+  wifi_softap_get_config(config);
+  strcpy(reinterpret_cast<char*>(config->ssid),ssid);
+  strcpy(reinterpret_cast<char*>(config->password), CONTRASENA);
+  config->authmode = AUTH_WPA_WPA2_PSK;
+  config->max_connection = MAX_USUARIOS;
+  config->ssid_hidden = HIDDEN_DEFAULT;
+  config->beacon_interval = BEACON_INTERVAL;
+
+  // Las nuevas modificaciones son grabadas en la memoria flash.
+  wifi_softap_set_config_current(config);
+  free(config);
+
+  // Se establece la configuracion del DHCP
+  wifi_softap_dhcps_stop();  // disable soft-AP DHCP server
+  IP4_ADDR(&info.ip, 192, 168, 1, 0); // set IP
+  IP4_ADDR(&info.gw, 192, 168, 1, 255); // set gateway
+  IP4_ADDR(&info.netmask, 255, 255, 255, 0); // set netmask
+  wifi_set_ip_info(SOFTAP_IF, &info);
+
+  // Se india el rango de ip que puede ofrecer el servicio de DHCP
+  IP4_ADDR(&dhcp_lease.start_ip, 192, 168, 1, 1);
+  IP4_ADDR(&dhcp_lease.end_ip, 192, 168, 1, 254);
+  wifi_softap_set_dhcps_lease(&dhcp_lease);
+  wifi_softap_dhcps_start(); // enable soft-AP DHCP server
+
+  #ifdef _DEBUG_WIFI
+    debug.print("[CONFW] SSID: ");
+    debug.println(st_ssid);
+    for(int i = 0; i < len; i++){
+      debug.print(ssid[i]);
+    }
+
+    debug.println("\n[CONFW] WiFi establecida");
+    debug.println("[CONFW] IP address: ");
+    debug.println(WiFi.softAPIP());
+  #endif
+
+  esp_conn = (struct espconn *)os_malloc((uint32)sizeof(struct espconn));
+  esp_conn->type = ESPCONN_TCP;
+  esp_conn->state = ESPCONN_NONE;
+  esp_conn->proto.tcp = (esp_tcp *)os_malloc((uint32)sizeof(esp_tcp));
+  esp_conn->proto.tcp->remote_port = MCPESP_SERVER_PORT;
+
+
+  return;
+}
+
+/******************************************************************************
+ * Función : confirmar_conexion
+ * @brief  : Comprueba que el dispositivo indicado se encuentra conectado a la red, y es posible
+              establecer una conexión TCP con el sin problemas.
+ * @param  : host - ip del dispositivo del que se desea comprobar que la conexion está establecida.
+ * @return : true - La conexión entre los dipositivos se ha realizado correctamente.
+ * @return : false - La conexión entre los dispositivos no se ha podido establecer correctamente.
+ * Etiqueta debug : Todos los comentarios para depuración de esta función
+                   estarán asociados a la etiqueta: "CFCNX".
+ *******************************************************************************/
+bool confirmar_conexion(struct infousu *host){
+
+  union {
+    uint32_t value;
+    uint8_t byte[4];
+  } _host;
+  int8_t info_tcp;
+  unsigned long time0;
+
+  if (!transmision_finalizada || !tcp_desconectado){
+    return false;
+  }
+
+  // Se comprueba que la IP se encuentre en el rango de IPs posibles.
+  if (((uint32_t) host->ipdir & 0x00FFFFFF) != 0x0001A8C0){ // XX01A8C0 = 192.168.1.xxx
+    return false;
+  }
+
+  // Se indica previamente que el usuario no se encuentra conectado.
+  registro_confirmado = false;
+
+  #ifdef _DEBUG_COMUNICACION
+    debug.print("[CFCNX] Se intenta establecer conexion con el servidor: ");
+    debug.println(host,HEX);
+  #endif
+
+  // Se establece conexión con el dispositivo.
+  _host.value = host->ipdir;
+  esp_conn->proto.tcp->remote_ip[0] = _host.byte[0];
+  esp_conn->proto.tcp->remote_ip[1] = _host.byte[1];
+  esp_conn->proto.tcp->remote_ip[2] = _host.byte[2];
+  esp_conn->proto.tcp->remote_ip[3] = _host.byte[3];
+  espconn_regist_connectcb(esp_conn, tcp_listen);
+
+
+  #ifdef _DEBUG_COMUNICACION
+    info_tcp = espconn_connect(esp_conn);
+
+    debug.print("[CFCNX] Aviso de conexion: ");
+    debug.println(info_tcp);
+
+    time0 = millis();
+    while(info_tcp != ESPCONN_OK){
+      debug.print("[CFCNX] Estableciendo conexión. Tiempo requerido: ");
+      debug.println(millis()-time0);
+
+      yield();
+
+      if (info_tcp == ESPCONN_ISCONN)
+        break;
+
+      info_tcp = espconn_connect(esp_conn);
+
+      if ((millis()-time0)>MAX_ESPWIFI){
+        debug.println("[CFCNX] No establecida.");
+        return false;
+      }
+    }
+  #else
+    time0 = millis();
+    while(espconn_connect(esp_conn) != ESPCONN_OK ){
+      yield();
+      if ((millis()-time0)>MAX_ESPWIFI){
+        return false;
+      }
+    }
+  #endif
+
+  // Se espera a que la comunicación tcp sea establecida.
+  time0 = millis();
+  while (!tcp_establecido) {
+    yield();
+    if ((millis()-time0)>MAX_ESPWIFI){
+      return false;
+    }
+  }
+
+  #ifdef _DEBUG_COMUNICACION
+  debug.println("[CFCNX] Conexion establecida?");
+  #endif
+
+  #ifdef _DEBUG_COMUNICACION
+  debug.print("[CFCNX] Si, la conexion se ha establecido. Tiempo requerido: ");
+  debug.println(millis()-time0);
+  debug.println("[CFCNX] Se envia respuesta de confirmacion de registro.");
+  time0 = millis();
+  #endif
+
+   // Se envia comando de registro.
+   uint8_t psent[1];
+   psent[0] = USUARIO_REGISTRADO;
+
+  time0 = millis();
+  #ifdef _DEBUG_COMUNICACION
+   info_tcp = espconn_send(esp_conn, psent , 1);
+
+  // Se espera a que la transmisión se haya completado.
+  while (!transmision_finalizada){
+    yield();
+
+   if (info_tcp != ESPCONN_OK)
+      info_tcp = espconn_send(esp_conn, psent , 1);
+
+      debug.print("[CFCNX] Codigo de envio: ");
+      debug.println(info_tcp);
+
+      if ((millis()-time0)>MAX_ESPWIFI){
+       return false;
+     }
+   }
+  #else
+    info_tcp = espconn_send(esp_conn, psent , 1);
+
+    // Se espera a que la transmisión se haya completado.
+    while (!transmision_finalizada){
+      yield();
+
+      if (info_tcp != ESPCONN_OK)
+        info_tcp = espconn_send(esp_conn, psent , 1);
+
+      if ((millis()-time0)>MAX_ESPWIFI){
+       return false;
+      }
+    }
+   #endif
+
+   #ifdef _DEBUG_COMUNICACION
+     debug.print("[CFCNX] Se ha enviado codigo de registro. Tiempo requerido: ");
+     debug.println(millis()-time0);
+     debug.println("[CFCNX] A espera de la confirmacion de la transmision.");
+   #endif
+
+   // Se espera confirmacion de la del registro del dispositivo.
+   // En caso de no ser recibida se considera que la conexión se ha roto,
+   // y no es posible afirmar la conexión con el dispositivo.
+   time0 = millis();
+   while (!registro_confirmado) {
+     yield();
+     if ((millis()-time0)>MAX_ESPWIFI){
+       return false;
+     }
+   }
+
+   // Se actualiza el contador de tiempo.
+   host->time_sync = get_rtc_time();
+
+   #ifdef _DEBUG_COMUNICACION
+     debug.print("[CFCNX] Confirmacion del registro. Tiempo requerido: ");
+     debug.println(millis()-time0);
+     debug.println("[CFCNX] A espera del cierre de la comunicacion.");
+   #endif
+
+   info_tcp = espconn_disconnect(esp_conn);
+
+   time0 = millis();
+   while (!tcp_desconectado) {
+     yield();
+
+     if (info_tcp != ESPCONN_OK)
+        info_tcp = espconn_disconnect(esp_conn);
+
+     if ((millis()-time0)>MAX_ESPWIFI){
+       return false;
+     }
+   }
+
+  // Se espera a que la comunicación sea cerrada.
+  time0 = millis();
+  while (!tcp_desconectado) {
+    yield();
+
+    if ((millis()-time0)>MAX_ESPWIFI){
+      return false;
+    }
+  }
+
+  #ifdef _DEBUG_COMUNICACION
+    debug.print("[CFCNX] Comunicacion TCP cerrada. Tiempo requerido: ");
+    debug.println(millis()-time0);
+  #endif
+
+
+
+  if (registro_confirmado) {
+    #ifdef _DEBUG_COMUNICACION
+       debug.println("[CFCNX] ------------------------------------------------------------------");
+       debug.print("[CFCNX] Sincronizacion realizada con exito. Tiempo requerido:");
+       debug.println(millis()-time0);
+       debug.println("[CFCNX] ------------------------------------------------------------------");
+    #endif
+    return true;
+  } else {
+    #ifdef _DEBUG_COMUNICACION
+      debug.println("[CFCNX] Sincronizacin fallida");
+    #endif
+    return false;
+  }
+}
+
+
  /******************************************************************************
   * Función : cmp_bssid
   * @brief  : Realiza la comparación entre dos bssid.
@@ -66,7 +352,7 @@ int8_t ins_usu (lista_usuarios *red, station_info *nuevo_usu){
   nuevo_usuario->siguiente = NULL;
 
   if (red->numusu == 0){
-    if (confirmar_conexion(nuevo_usuario->ipdir)){
+    if (confirmar_conexion(nuevo_usuario)){
       // Se confirma su estado de activado.
       nuevo_usuario->estado = true;
       // Se incremente el número de usuarios registrados.
@@ -102,7 +388,7 @@ int8_t ins_usu (lista_usuarios *red, station_info *nuevo_usu){
         }
 
         if (!(*usuario_actual)->estado)
-          if (confirmar_conexion(nuevo_usuario->ipdir)){
+          if (confirmar_conexion(nuevo_usuario)){
             (*usuario_actual)->estado = true;
             #ifdef _DEBUG_COMUNICACION
                 debug.println("[INUSU] Usuario activado");
@@ -120,7 +406,7 @@ int8_t ins_usu (lista_usuarios *red, station_info *nuevo_usu){
       }
       if ((*usuario_actual)->siguiente == NULL){
         // Se confirma el registro del usuario
-        if (confirmar_conexion(nuevo_usuario->ipdir)){
+        if (confirmar_conexion(nuevo_usuario)){
           // Se confirma su estado de activado.
           nuevo_usuario->estado = true;
           // Se incremente el número de usuarios registrados.
@@ -245,7 +531,7 @@ void actualizacion_estado_usuarios(lista_usuarios *red){
         if (!(*usuario_actual)->estado)
           // Si el proceso de confirmación de la conexión no es realizado con éxito,
           // se indica que el dispositivo se encuenta desactivado.
-          if (confirmar_conexion((*usuario_actual)->ipdir)){
+          if (confirmar_conexion(*usuario_actual)){
               (*usuario_actual)->estado = true;
               #ifdef _DEBUG_COMUNICACION
                   debug.println("Usuario activado");
