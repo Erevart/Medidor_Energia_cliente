@@ -18,9 +18,9 @@
 /* -------------------------------------------------------------------------------------------------------------*/
 
 /* Parametros de Debug */
-//#define _DEBUG_WIFI   // Muestra por puerto serie información relativa la configuracion wifi.
-//#define _DEBUG_COMUNICACION // Muestra por puerto serie información relativa la comunicación TCP.
-//#define _DEBUG_MEMORIA  // Muestra información relativa a la escritura y lectura en memoria.
+#define _DEBUG_WIFI   // Muestra por puerto serie información relativa la configuracion wifi.
+#define _DEBUG_COMUNICACION // Muestra por puerto serie información relativa la comunicación TCP.
+#define _DEBUG_MEMORIA  // Muestra información relativa a la escritura y lectura en memoria.
 //#define _DEBUG_RTC      // Muestra el tiempo de funcionamiento del dispositivo desde la ultima sincronización.
 //#define _DEBUG_RTC_TEST // Muestras el test de comparación entre las variables de tiempo del dispositovo.
 //#define _DEBUG_BSSID
@@ -89,7 +89,9 @@
 #define RTC_MAGIC 0x55aaaa55           // RTC_MAGIC
 /* Parametros escritura y lectura en memoria */
 #define DATOS_WIFI 0xEF                // Indica que la memoria del dispositivo hay información gurdada respesto a la red de dipositivos.
-
+#define TCP_START 0x40                  // Byte que indica el inicio de la trama de la comunicacion ESP8266 - ESP8266
+#define TCP_STOP  0x23                  // Byte que indica el fin de la trama de la comunicacion ESP8266 - ESP8266
+#define TCP_CONTINUE 0x3F               // Byte que indica que continue de la trama de la comunicacion ESP8266 - ESP8266
 
 
 /* Declaración de estructura */
@@ -130,15 +132,15 @@ void tcp_server_recon_cb(void *arg, sint8 err);
 void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length);
 void tcp_listen(void *arg);
 void configWifi();
-bool confirmar_conexion(struct infousu *host);
+bool check_connection(struct infousu *host);
 void tcp_comunication(const uint32_t host);
 
 // ESPWifi
 bool cmp_bssid(char *mac1, char *mac2);
 int8_t ins_usu (lista_usuarios *red, station_info *nuevo_usu);
-void actualizacion_estado_usuarios(lista_usuarios *red);
-void borrar_usuarios(lista_usuarios *red);
-void actualizar_red(lista_usuarios *red);
+void sync_users(lista_usuarios *red);
+void del_user(lista_usuarios *red);
+void check_red(lista_usuarios *red);
 void timersoft(void *pArg);
 void isrsinc();
 void isrWifi (WiFiEvent_t event);
@@ -146,9 +148,9 @@ void isrWifi (WiFiEvent_t event);
 // Memoria
 void nvrWrite_u8(uint8_t value, unsigned int memaddr);
 uint8_t nvrRead_u8(unsigned int memaddr);
-void guardar_red(lista_usuarios *red);
-void leer_red(lista_usuarios *red );
-void comprobacion_usuarios_eeprom();
+void saveEEPROM(lista_usuarios *red);
+void readEEPROM(lista_usuarios *red );
+void checkEEPROM();
 
 // rtctime
 void update_rtc_time(bool reset);
@@ -178,6 +180,7 @@ uint32_t timecounter = 0;                 // Variable que indica el numero de it
 
 uint8_t modo_sinc = 0x00;                 // Variable que indica es estado en el que se encuentra la máquina de estado,
                                           // para la sincronización de los dispositivos.
+uint8_t stop_continue = '#';              // Determina si se cierra la comunicación tcp o se mantiene abierta.
 
 bool tcp_establecido = false;             // Indica que la conexión TPC se ha estblecido con el servidor.
 bool registro_confirmado = false;         // Variable utilizada para verifizar que la confirmación de

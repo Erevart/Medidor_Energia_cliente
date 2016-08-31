@@ -103,19 +103,74 @@ void tcp_server_recon_cb(void *arg, sint8 err){
  * @return : none
  * Etiqueta debug : Todos los comentarios para depuración de esta función
                    estarán asociados a la etiqueta: "TCP_RV_CB".
+  * ------------------------ *
+   Protocolo de comunicación
+  * ------------------------ *
+
+ |------------|--------------|---------------|---------|--------|-------------------|
+ | -- Start --|-- tcpcount --|-- ident_var --|-- Var --|- \...\-|-- Stop/Continue --|
+ |------------|--------------|---------------|---------|--------|-------------------|
+
+ Start (start) - uint8_t = ¿  || Byte de inicio de comunicación.
+ tcpcount      - uint8_t =    || Número de variables que serán recibidas.
+ ident_var     - *uint8_t =   || Identificador de la variable recibida.
+ Var           - *double      || Variable
+ Stop/Continue - uint8_t = #/?|| Byte de fin de comunicación o indicador de mantener la comunicación.
+
  *******************************************************************************/
 void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
 {
 
-  #ifdef _DEBUG_COMUNICACION_LIMIT
+  union {
+    float float_value;
+    int8_t byte[4];
+  } var;
+
+  uint8_t start = tcp_data[0];
+  uint8_t tcpcount = tcp_data[1];
+
+
+  stop_continue = tcp_data[length-1];
+
+  #ifdef _DEBUG_COMUNICACION
       debug.print("[TCP_RV_CB] Recepcion de datos. Numero de datos recibidos: ");
       debug.println(length);
       debug.print("[TCP_RV_CB] Información recibida: ");
       debug.println(tcp_data);
+      for (uint8_t i = 0; i < 4; i++)
+        var.byte[i] = tcp_data[2+i];
+      debug.print("Datos recibidos: ");
+      debug.println(tcp_data);
+      debug.print("Start: ");
+      debug.println(start);
+      debug.print("tpcount: ");
+      debug.println(tcpcount);
+      debug.print("ident_var: ");
+      debug.println(tcp_data[2]);
+      debug.print("var: ");
+      debug.println(var.float_value);
+      debug.print("Stop: ");
+      debug.println(stop_continue);
+
   #endif
 
+    if (start != TCP_START ){
+      tcp_recibido = true;
+      return;
+    }
+
     /* PROCESAMIENTO DE LA INFORMACIÓN RECIBIDA */
-    switch (tcp_data[0]) {
+    //       j =    // Variable auxiliar para recorrer la trama de datos.
+                    // Los datos se empiezan a recibir a partir de 3 byte.
+                    // El conjunto de bytes que identifican y definen su valor
+                    // esta formado por 5 bytes.
+
+  for (int j = 2; j < ( 2 + (tcpcount)*5 ) ; j += 5){
+    if (length > 3)
+      for (uint8_t i = 0; i < 4; i++)
+        var.byte[i] = tcp_data[2+i];
+
+    switch (tcp_data[j]) {
 
       case WACK:
         registro_confirmado = true;
@@ -123,15 +178,26 @@ void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
 
       default:
       #ifdef _DEBUG_COMUNICACION
-        debug.println("[TCP_RV_CB]: Operacion no identificado.");
+        debug.println("[TCP_RV_CB] Operacion no identificado.");
       #endif
       break;
 
       // Operación de debug.
     //  #ifdef _DEBUG_COMUNICACION
         case '!':
-          debug.println("Datos recibidos: ");
+          debug.print("Datos recibidos: ");
           debug.println(tcp_data);
+          debug.print("Start: ");
+          debug.println(start);
+          debug.print("tpcount: ");
+          debug.println(tcpcount);
+          debug.print("ident_var: ");
+          debug.println(tcp_data[j]);
+          debug.print("var: ");
+          debug.println(var.float_value);
+          debug.print("Stop: ");
+          debug.println(stop_continue);
+
           debug.print("Instante de tiempo registrado de sincronizacion: ");
           debug.printLLNumber(((usuario_conectado->time_sync) / 10000000) / 100,10);
           debug.println();
@@ -143,13 +209,15 @@ void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
     //  #endif
       }
 
+      // Se incremente la variable, para apuntar el siguiente datos en la trama.
+      j += 5;
+  }
+
+  tcp_recibido = true;
+
     #ifdef _DEBUG_COMUNICACION
-        debug.print("TCP RECV: FIN comunicacion.");
+        debug.println("[TCP_RV_CB] FIN comunicacion.");
     #endif
-
-
-
-    tcp_recibido = true;
 }
 
 /******************************************************************************
@@ -323,35 +391,43 @@ void tcp_comunication(const uint32_t host){
   while (!tcp_recibido){
     yield();
     if ((millis()-time0)>MAX_ESPWIFI){
-      return;
+      stop_continue == TCP_STOP;
+      break;
     }
   }
+
+  #ifdef _DEBUG_COMUNICACION
+    if (tcp_recibido){
+      debug.print("[TCPCM] Informacion recepcionada. Tiempo requerido: ");
+      debug.println(millis()-time0);
+    }
+    if (stop_continue == '#'){
+      debug.println("[TCPCM] Previa desconexion del comunicacion con el servidor anterior.");
+      debug.println("[TCPCM] Se envia codigo de desconexion.");
+    }
+  #endif
+
   tcp_recibido = false;
 
-  #ifdef _DEBUG_COMUNICACION
-     debug.print("[TCPCM] Información recepcionada. Tiempo requerido: ");
-     debug.println(millis()-time0);
-     debug.println("[TCPCM] Previa desconexion del comunicacion con el servidor anterior.");
-     debug.println("[TCPCM] Se envia codigo de desconexion.");
-  #endif
+  if (stop_continue == TCP_STOP){
+   info_tcp = espconn_disconnect(esp_conn);
 
- info_tcp = espconn_disconnect(esp_conn);
+   time0 = millis();
+   while (!tcp_desconectado) {
+     yield();
 
- time0 = millis();
- while (!tcp_desconectado) {
-   yield();
+     if (info_tcp != ESPCONN_OK)
+        info_tcp = espconn_disconnect(esp_conn);
 
-   if (info_tcp != ESPCONN_OK)
-      info_tcp = espconn_disconnect(esp_conn);
-
-   if ((millis()-time0)>MAX_ESPWIFI){
-     return;
+     if ((millis()-time0)>MAX_ESPWIFI){
+       return;
+     }
    }
- }
 
-  #ifdef _DEBUG_COMUNICACION
-     debug.print("[TCPCM] Comunicacion TCP cerrada. Tiempo requerido: ");
-     debug.println(millis()-time0);
-  #endif
+    #ifdef _DEBUG_COMUNICACION
+       debug.print("[TCPCM] Comunicacion TCP cerrada. Tiempo requerido: ");
+       debug.println(millis()-time0);
+    #endif
+  }
 
 }

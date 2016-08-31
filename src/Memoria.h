@@ -23,7 +23,7 @@ uint8_t nvrRead_u8(unsigned int memaddr) {
 }
 
 /******************************************************************************
- * Función : guardar_red
+ * Función : saveEEPROM
  * @brief  : Lee de la memoria EEPROM los usuarios registrados y los registra en
              la estructura de datos "red".
  * @param  : red - puntero de la estructura de datos donde está el número
@@ -32,7 +32,7 @@ uint8_t nvrRead_u8(unsigned int memaddr) {
  * Etiqueta debug : Todos los comentarios para depuración de esta función
                    estarán asociados a la etiqueta: "MGR".
  *******************************************************************************/
-void guardar_red(lista_usuarios *red){
+void saveEEPROM(lista_usuarios *red){
 
   if ( (red->numusu == 0) || red->numusu == nvrRead_u8(1) ){
   #ifdef _DEBUG_MEMORIA
@@ -95,7 +95,7 @@ void guardar_red(lista_usuarios *red){
  * Etiqueta debug : Todos los comentarios para depuración de esta función
                    estarán asociados a la etiqueta: "MLR".
  *******************************************************************************/
-void leer_red(lista_usuarios *red ){
+void readEEPROM(lista_usuarios *red ){
 
   infousu *nuevo_usuario;
   infousu **usuario_actual = &red->usuarios;
@@ -146,20 +146,20 @@ void leer_red(lista_usuarios *red ){
 }
 
 /******************************************************************************
- * Función : comprobacion_usuarios_eeprom
+ * Función : checkEEPROM
  * @brief  : Comprueba si hay usuarios registrados en memoria
  * @param  : none
  * @return : none
  * Etiqueta debug : Todos los comentarios para depuración de esta función
                    estarán asociados a la etiqueta: "MCK".
  *******************************************************************************/
-void comprobacion_usuarios_eeprom(){
+void checkEEPROM(){
   // Se comprueba si se han guardado parametros de usuarios previamente.
     if (nvrRead_u8(0) == DATOS_WIFI){
     #ifdef _DEBUG_MEMORIA
       debug.println("[MCK] Lee de memoria.");
     #endif
-      leer_red(&red_usuarios);
+      readEEPROM(&red_usuarios);
     }
     #ifdef _DEBUG_MEMORIA
       else{

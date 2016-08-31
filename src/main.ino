@@ -49,7 +49,7 @@ void setup() {
 	/******************************/
 	/*   Configuración Wifi       */
 	/******************************/
-    comprobacion_usuarios_eeprom();
+    checkEEPROM();
 
   /******************************/
   /*   Configuración Wifi       */
@@ -133,11 +133,11 @@ void loop() {
 
       if (modo_sinc == SINCRONIZACION){
         // Se actualiza los usuarios conectados a la red.
-        actualizar_red(&red_usuarios);
+        check_red(&red_usuarios);
         // Se actualiza el modo de sincronizacion
         modo_sinc = ESPERA_USUARIOS;
       } else if (modo_sinc == ACTUALIZACION){
-        actualizacion_estado_usuarios(&red_usuarios);
+        sync_users(&red_usuarios);
         // Se actualiza el modo de sincronizacion
         modo_sinc = ESPERA_BOTON;
       }

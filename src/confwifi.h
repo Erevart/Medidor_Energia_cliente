@@ -84,7 +84,7 @@ void configWifi(){
 }
 
 /******************************************************************************
- * Función : confirmar_conexion
+ * Función : check_connection
  * @brief  : Comprueba que el dispositivo indicado se encuentra conectado a la red, y es posible
               establecer una conexión TCP con el sin problemas.
  * @param  : host - ip del dispositivo del que se desea comprobar que la conexion está establecida.
@@ -93,7 +93,7 @@ void configWifi(){
  * Etiqueta debug : Todos los comentarios para depuración de esta función
                    estarán asociados a la etiqueta: "CFCNX".
  *******************************************************************************/
-bool confirmar_conexion(struct infousu *host){
+bool check_connection(struct infousu *host){
 
   union {
     uint32_t value;
@@ -116,7 +116,7 @@ bool confirmar_conexion(struct infousu *host){
 
   #ifdef _DEBUG_COMUNICACION
     debug.print("[CFCNX] Se intenta establecer conexion con el servidor: ");
-    debug.println(host,HEX);
+    debug.println(host->ipdir,HEX);
   #endif
 
   // Se establece conexión con el dispositivo.
@@ -352,7 +352,7 @@ int8_t ins_usu (lista_usuarios *red, station_info *nuevo_usu){
   nuevo_usuario->siguiente = NULL;
 
   if (red->numusu == 0){
-    if (confirmar_conexion(nuevo_usuario)){
+    if (check_connection(nuevo_usuario)){
       // Se confirma su estado de activado.
       nuevo_usuario->estado = true;
       // Se incremente el número de usuarios registrados.
@@ -388,7 +388,7 @@ int8_t ins_usu (lista_usuarios *red, station_info *nuevo_usu){
         }
 
         if (!(*usuario_actual)->estado)
-          if (confirmar_conexion(nuevo_usuario)){
+          if (check_connection(nuevo_usuario)){
             (*usuario_actual)->estado = true;
             #ifdef _DEBUG_COMUNICACION
                 debug.println("[INUSU] Usuario activado");
@@ -406,7 +406,7 @@ int8_t ins_usu (lista_usuarios *red, station_info *nuevo_usu){
       }
       if ((*usuario_actual)->siguiente == NULL){
         // Se confirma el registro del usuario
-        if (confirmar_conexion(nuevo_usuario)){
+        if (check_connection(nuevo_usuario)){
           // Se confirma su estado de activado.
           nuevo_usuario->estado = true;
           // Se incremente el número de usuarios registrados.
@@ -450,14 +450,14 @@ int8_t ins_usu (lista_usuarios *red, station_info *nuevo_usu){
  }
 
  /******************************************************************************
-  * Función : actualizacion_estado_usuarios
+  * Función : sync_users
   * @brief  : Actualiza el estado de los usuarios ya registrados.
   * @param  : red - puntero a la lista de dispositivos registrados en la red.
   * @return : none
   * Etiqueta debug : Todos los comentarios para depuración de esta función
                     estarán asociados a la etiqueta: "AEU".
   *******************************************************************************/
-void actualizacion_estado_usuarios(lista_usuarios *red){
+void sync_users(lista_usuarios *red){
 
   // Si el número de usuarios registrados o conectados es cero no se realizada nada.
   if (red->numusu == 0 || red->numconex == 0)
@@ -531,7 +531,7 @@ void actualizacion_estado_usuarios(lista_usuarios *red){
         if (!(*usuario_actual)->estado)
           // Si el proceso de confirmación de la conexión no es realizado con éxito,
           // se indica que el dispositivo se encuenta desactivado.
-          if (confirmar_conexion(*usuario_actual)){
+          if (check_connection(*usuario_actual)){
               (*usuario_actual)->estado = true;
               #ifdef _DEBUG_COMUNICACION
                   debug.println("Usuario activado");
@@ -572,14 +572,14 @@ void actualizacion_estado_usuarios(lista_usuarios *red){
  }
 
  /******************************************************************************
-  * Función : borrar_usuarios
+  * Función : del_user
   * @brief  : Actualiza el número de usuarios y su estado registrados en la red.
   * @param  : red - puntero a la lista de dispositivos registrados en la red.
   * @return : none
   * Etiqueta debug : Todos los comentarios para depuración de esta función
                     estarán asociados a la etiqueta: "BORRUSU".
   *******************************************************************************/
-void borrar_usuarios(lista_usuarios *red){
+void del_user(lista_usuarios *red){
 
   infousu *sup_usuario;
 
@@ -619,14 +619,14 @@ void borrar_usuarios(lista_usuarios *red){
 }
 
 /******************************************************************************
- * Función : actualizar_red
+ * Función : check_red
  * @brief  : Actualiza el número de usuarios y su estado registrados en la red.
  * @param  : red - puntero a la lista de dispositivos registrados en la red.
  * @return : none
  * Etiqueta debug : Todos los comentarios para depuración de esta función
                    estarán asociados a la etiqueta: "ACTRED".
  *******************************************************************************/
-void actualizar_red(lista_usuarios *red){
+void check_red(lista_usuarios *red){
 
   ets_intr_lock();
 
@@ -661,7 +661,7 @@ void actualizar_red(lista_usuarios *red){
   #endif
 
   // Se guarda los usuarios registrados en memoria.
-  guardar_red(&red_usuarios);
+  saveEEPROM(&red_usuarios);
 
   ets_intr_unlock();
 }
@@ -721,7 +721,7 @@ void timersoft(void *pArg){
     os_free(timerreset);
 
     // Se borran los datos de los usuarios registrados
-    borrar_usuarios(&red_usuarios);
+    del_user(&red_usuarios);
 #ifdef _DEBUG_WIFI
     debug.println("[ISRTS] Se borran los datos de usuarios");
 #endif
@@ -779,7 +779,7 @@ void isrsinc(){
 
 
     #ifdef _DEBUG_WIFI
-      debug.println(" [ISRS] Timer de sincronizacion activado. SSID visible");
+      debug.println("[ISRS] Timer de sincronizacion activado. SSID visible");
     #endif
 
   }
