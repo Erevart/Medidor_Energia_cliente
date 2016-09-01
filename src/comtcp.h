@@ -107,16 +107,15 @@ void tcp_server_recon_cb(void *arg, sint8 err){
    Protocolo de comunicación
   * ------------------------ *
 
- |------------|--------------|---------------|---------|--------|-------------------|
- | -- Start --|-- tcpcount --|-- ident_var --|-- Var --|- \...\-|-- Stop/Continue --|
- |------------|--------------|---------------|---------|--------|-------------------|
+ |------------|--------------|---------------|---------|--------|----------|
+ | -- Start --|-- tcpcount --|-- ident_var --|-- Var --|- \...\-|-- Stop --|
+ |------------|--------------|---------------|---------|--------|----------|
 
  Start (start) - uint8_t = ¿  || Byte de inicio de comunicación.
  tcpcount      - uint8_t =    || Número de variables que serán recibidas.
  ident_var     - *uint8_t =   || Identificador de la variable recibida.
  Var           - *double      || Variable
- Stop/Continue - uint8_t = #/?|| Byte de fin de comunicación o indicador de mantener la comunicación.
-
+ Stop          - uint8_t = #  || Byte de fin de comunicación.
  *******************************************************************************/
 void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
 {
@@ -147,6 +146,7 @@ void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
                   // esta formado por 5 bytes.
 
   for (int j = 2; j < ( 2 + (tcpcount)*5 ) ; j += 5){
+  // Falta identificar cuando se envia un variable de 64 bits.
   //  if (tcp_data[j] == TCP_U64)
   //      lon = 64;
 
@@ -272,9 +272,6 @@ void tcp_comunication(const uint32_t host){
   if (!transmision_finalizada || !tcp_desconectado){
     return;
   }
-
-  //if (stop_continue == TCP_CONTINUE)
-  //  return;
 
   #ifdef _DEBUG_COMUNICACION
     debug.print("[TCPCM] conexion con el servidor (direccion ip): ");
