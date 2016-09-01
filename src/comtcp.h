@@ -123,12 +123,13 @@ void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
 
   union {
     float float_value;
-    int8_t byte[4];
+    uint64_t long_value;
+    uint8_t byte[8];
   } var;
 
+  uint8_t lon = 0;
   uint8_t start = tcp_data[0];
   uint8_t tcpcount = tcp_data[1];
-
 
   stop_continue = tcp_data[length-1];
 
@@ -137,38 +138,20 @@ void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
       debug.println(length);
       debug.print("[TCP_RV_CB] Información recibida: ");
       debug.println(tcp_data);
-      for (uint8_t i = 0; i < 4; i++)
-        var.byte[i] = tcp_data[2+i];
-      debug.print("Datos recibidos: ");
-      debug.println(tcp_data);
-      debug.print("Start: ");
-      debug.println(start);
-      debug.print("tpcount: ");
-      debug.println(tcpcount);
-      debug.print("ident_var: ");
-      debug.println(tcp_data[2]);
-      debug.print("var: ");
-      debug.println(var.float_value);
-      debug.print("Stop: ");
-      debug.println(stop_continue);
-
   #endif
 
-    if (start != TCP_START ){
-      tcp_recibido = true;
-      return;
-    }
-
-    /* PROCESAMIENTO DE LA INFORMACIÓN RECIBIDA */
-    //       j =    // Variable auxiliar para recorrer la trama de datos.
-                    // Los datos se empiezan a recibir a partir de 3 byte.
-                    // El conjunto de bytes que identifican y definen su valor
-                    // esta formado por 5 bytes.
+  /* PROCESAMIENTO DE LA INFORMACIÓN RECIBIDA */
+  //       j =    // Variable auxiliar para recorrer la trama de datos.
+                  // Los datos se empiezan a recibir a partir de 3 byte.
+                  // El conjunto de bytes que identifican y definen su valor
+                  // esta formado por 5 bytes.
 
   for (int j = 2; j < ( 2 + (tcpcount)*5 ) ; j += 5){
-    if (length > 3)
-      for (uint8_t i = 0; i < 4; i++)
-        var.byte[i] = tcp_data[2+i];
+  //  if (tcp_data[j] == TCP_U64)
+  //      lon = 64;
+
+      for (uint8_t i = 0; i < 8 + lon; i++)
+        var.byte[i] = tcp_data[3+i];
 
     switch (tcp_data[j]) {
 
@@ -185,6 +168,10 @@ void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
       // Operación de debug.
     //  #ifdef _DEBUG_COMUNICACION
         case '!':
+
+          /*
+          debug.print("[TCP_RV_CB] Recepcion de datos. Numero de datos recibidos: ");
+          debug.println(length);
           debug.print("Datos recibidos: ");
           debug.println(tcp_data);
           debug.print("Start: ");
@@ -194,16 +181,26 @@ void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
           debug.print("ident_var: ");
           debug.println(tcp_data[j]);
           debug.print("var: ");
-          debug.println(var.float_value);
+          debug.printLLNumber(var.long_value,10);
           debug.print("Stop: ");
           debug.println(stop_continue);
+          */
 
-          debug.print("Instante de tiempo registrado de sincronizacion: ");
+
+          debug.print("Instante de tiempo de sincronizacion: ");
           debug.printLLNumber(((usuario_conectado->time_sync) / 10000000) / 100,10);
           debug.println();
           debug.print("Tiempo transcurrido desde la sincronizacion: ");
-          uint64_t t = ( ( get_rtc_time()-usuario_conectado->time_sync) / 10000000) / 100;
-          debug.printLLNumber( t,10);
+          uint64_t t = ( ( get_rtc_time()-usuario_conectado->time_sync) / 10000000);
+          debug.printLLNumber( t/100,10);
+          debug.print(".");
+          debug.printLLNumber( t % 100,10);
+          debug.println();
+          debug.print("Tiempo indicado por el servidor ");
+          t = ( ( var.long_value ) / 10000000);
+          debug.printLLNumber( t/100,10);
+          debug.print(".");
+          debug.printLLNumber( t % 100,10);
           debug.println();
           break;
     //  #endif
@@ -275,6 +272,9 @@ void tcp_comunication(const uint32_t host){
   if (!transmision_finalizada || !tcp_desconectado){
     return;
   }
+
+  //if (stop_continue == TCP_CONTINUE)
+  //  return;
 
   #ifdef _DEBUG_COMUNICACION
     debug.print("[TCPCM] conexion con el servidor (direccion ip): ");
@@ -391,8 +391,8 @@ void tcp_comunication(const uint32_t host){
   while (!tcp_recibido){
     yield();
     if ((millis()-time0)>MAX_ESPWIFI){
-      stop_continue == TCP_STOP;
-      break;
+    //  stop_continue == TCP_STOP;
+      return;
     }
   }
 
@@ -401,15 +401,12 @@ void tcp_comunication(const uint32_t host){
       debug.print("[TCPCM] Informacion recepcionada. Tiempo requerido: ");
       debug.println(millis()-time0);
     }
-    if (stop_continue == '#'){
-      debug.println("[TCPCM] Previa desconexion del comunicacion con el servidor anterior.");
-      debug.println("[TCPCM] Se envia codigo de desconexion.");
-    }
+      debug.println("[TCPCM] Desconexion del servidor anterior.");
   #endif
 
   tcp_recibido = false;
 
-  if (stop_continue == TCP_STOP){
+//  if (stop_continue == TCP_STOP){
    info_tcp = espconn_disconnect(esp_conn);
 
    time0 = millis();
@@ -428,6 +425,6 @@ void tcp_comunication(const uint32_t host){
        debug.print("[TCPCM] Comunicacion TCP cerrada. Tiempo requerido: ");
        debug.println(millis()-time0);
     #endif
-  }
+//  }
 
 }

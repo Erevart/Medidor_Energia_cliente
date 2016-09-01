@@ -18,9 +18,9 @@
 /* -------------------------------------------------------------------------------------------------------------*/
 
 /* Parametros de Debug */
-#define _DEBUG_WIFI   // Muestra por puerto serie información relativa la configuracion wifi.
+//#define _DEBUG_WIFI   // Muestra por puerto serie información relativa la configuracion wifi.
 #define _DEBUG_COMUNICACION // Muestra por puerto serie información relativa la comunicación TCP.
-#define _DEBUG_MEMORIA  // Muestra información relativa a la escritura y lectura en memoria.
+//#define _DEBUG_MEMORIA  // Muestra información relativa a la escritura y lectura en memoria.
 //#define _DEBUG_RTC      // Muestra el tiempo de funcionamiento del dispositivo desde la ultima sincronización.
 //#define _DEBUG_RTC_TEST // Muestras el test de comparación entre las variables de tiempo del dispositovo.
 //#define _DEBUG_BSSID
@@ -61,7 +61,7 @@
 #define loop1       1         // Loop de 10 ms
 #define loop2       2         // Loop de 20 ms
 #define loop3       100       // Loop de 1s
-#define loop4       700       // Loop de 7s
+#define loop4       300       // Loop de 7s
 #define loop5       6000      // Loop de 1m
 
 /* Parametros Red WIFI */
@@ -92,6 +92,7 @@
 #define TCP_START 0x40                  // Byte que indica el inicio de la trama de la comunicacion ESP8266 - ESP8266
 #define TCP_STOP  0x23                  // Byte que indica el fin de la trama de la comunicacion ESP8266 - ESP8266
 #define TCP_CONTINUE 0x3F               // Byte que indica que continue de la trama de la comunicacion ESP8266 - ESP8266
+#define TCP_U64 0x3E                    // Byte que indica que se ha transmitido un variable de 64 bits.
 
 
 /* Declaración de estructura */
@@ -116,9 +117,9 @@ typedef struct lista_usuarios {
 
 // Estructura de datos RTC
 typedef struct {
-  uint64 timeAcc;
-  uint32 magic;
-  uint32 timeBase;
+  uint64_t timeAcc;
+  uint32_t magic;
+  uint32_t timeBase;
 } RTC_TIMER;
 
 

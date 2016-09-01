@@ -24,7 +24,15 @@ extern "C" {
 
 void setup() {
 
-   delay(2000);
+  /*****************/
+  /* RTC timer     */
+  /*****************/
+  update_rtc_time(true);
+
+
+  /*****************/
+  /* EEPROM    */
+  /*****************/
 
    EEPROM.begin((MAX_USUARIOS*6 + 2)*sizeof(uint8_t));
 
@@ -40,11 +48,6 @@ void setup() {
   /******************************/
     Serial.begin(115200);
     delay(1000);
-
-  /*****************/
-  /* RTC timer     */
-  /*****************/
-  update_rtc_time(true);
 
 	/******************************/
 	/*   Configuración Wifi       */

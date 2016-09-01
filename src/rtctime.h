@@ -35,9 +35,9 @@ void update_rtc_time(bool reset){
   }
 
   #ifdef _DEBUG_RTC_TEST
-    uint32 rtcT1, rtcT2;
-    uint32 st1, st2;
-    uint32 cal1, cal2;
+    uint32_t rtcT1, rtcT2;
+    uint32_t st1, st2;
+    uint32_t cal1, cal2;
 
     debug.print("[URTC]===================\r\n");
     debug.println("[URTC] RTC time test");

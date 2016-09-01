@@ -99,6 +99,7 @@ bool check_connection(struct infousu *host){
     uint32_t value;
     uint8_t byte[4];
   } _host;
+  
   int8_t info_tcp;
   unsigned long time0;
 
