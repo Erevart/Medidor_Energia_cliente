@@ -95,30 +95,17 @@ void tcp_server_recon_cb(void *arg, sint8 err){
     /* AÚN NO COMPROBADO */
 }
 
-/******************************************************************************
- * Función : tcp_server_recv_cb
- * @brief  : Callback cuando se recibe información del cliente. Permite leer la
-             la trama de datos recibida e identificar la operación solicitada.
- * @param  : arg - puntero a la variable tipo espconn que determina la comunicación.
- * @return : none
- * Etiqueta debug : Todos los comentarios para depuración de esta función
-                   estarán asociados a la etiqueta: "TCP_RV_CB".
-  * ------------------------ *
-   Protocolo de comunicación
-  * ------------------------ *
+void tcp_recevied_data(){
 
- |------------|--------------|---------------|---------|--------|----------|
- | -- Start --|-- tcpcount --|-- ident_var --|-- Var --|- \...\-|-- Stop --|
- |------------|--------------|---------------|---------|--------|----------|
 
- Start (start) - uint8_t = ¿  || Byte de inicio de comunicación.
- tcpcount      - uint8_t =    || Número de variables que serán recibidas.
- ident_var     - *uint8_t =   || Identificador de la variable recibida.
- Var           - *double      || Variable
- Stop          - uint8_t = #  || Byte de fin de comunicación.
- *******************************************************************************/
-void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
-{
+  if (tcpdata ==  NULL)
+    return;
+
+  if (tcpdata[0] !=  TCP_START)
+    return;
+
+  // Se asegura no volver a procesar la misma información.
+  tcpdata[0] = TCP_STOP;
 
   union {
     float float_value;
@@ -127,16 +114,14 @@ void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
   } var;
 
   uint8_t lon = 0;
-  uint8_t start = tcp_data[0];
-  uint8_t tcpcount = tcp_data[1];
+  uint8_t start = tcpdata[0];
+  uint8_t tcpcount = tcpdata[1];
 
-  stop_continue = tcp_data[length-1];
+  //stop_continue = tcpdata[length-1];
 
   #ifdef _DEBUG_COMUNICACION
-      debug.print("[TCP_RV_CB] Recepcion de datos. Numero de datos recibidos: ");
-      debug.println(length);
-      debug.print("[TCP_RV_CB] Información recibida: ");
-      debug.println(tcp_data);
+      debug.print("[TRD] Información recibida: ");
+      debug.println((char*)tcpdata);
   #endif
 
   /* PROCESAMIENTO DE LA INFORMACIÓN RECIBIDA */
@@ -147,21 +132,21 @@ void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
 
   for (int j = 2; j < ( 2 + (tcpcount)*5 ) ; j += 5){
   // Falta identificar cuando se envia un variable de 64 bits.
-  //  if (tcp_data[j] == TCP_U64)
+  //  if (tcpdata[j] == TCP_U64)
   //      lon = 64;
 
       for (uint8_t i = 0; i < 8 + lon; i++)
-        var.byte[i] = tcp_data[3+i];
+        var.byte[i] = tcpdata[3+i];
 
-    switch (tcp_data[j]) {
+    switch (tcpdata[j]) {
 
-      case WACK:
-        registro_confirmado = true;
-        break;
+//      case WACK:
+//        registro_confirmado = true;
+//        break;
 
       default:
       #ifdef _DEBUG_COMUNICACION
-        debug.println("[TCP_RV_CB] Operacion no identificado.");
+        debug.println("[TRD] Operacion no identificado.");
       #endif
       break;
 
@@ -209,6 +194,54 @@ void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
       // Se incremente la variable, para apuntar el siguiente datos en la trama.
       j += 5;
   }
+
+  os_free(tcpdata);
+}
+
+/******************************************************************************
+ * Función : tcp_server_recv_cb
+ * @brief  : Callback cuando se recibe información del cliente. Permite leer la
+             la trama de datos recibida e identificar la operación solicitada.
+ * @param  : arg - puntero a la variable tipo espconn que determina la comunicación.
+ * @return : none
+ * Etiqueta debug : Todos los comentarios para depuración de esta función
+                   estarán asociados a la etiqueta: "TCP_RV_CB".
+  * ------------------------ *
+   Protocolo de comunicación
+  * ------------------------ *
+
+ |------------|--------------|---------------|---------|--------|----------|
+ | -- Start --|-- tcpcount --|-- ident_var --|-- Var --|- \...\-|-- Stop --|
+ |------------|--------------|---------------|---------|--------|----------|
+
+ Start (start) - uint8_t = ¿  || Byte de inicio de comunicación.
+ tcpcount      - uint8_t =    || Número de variables que serán recibidas.
+ ident_var     - *uint8_t =   || Identificador de la variable recibida.
+ Var           - *double      || Variable
+ Stop          - uint8_t = #  || Byte de fin de comunicación.
+ *******************************************************************************/
+void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
+{
+
+  #ifdef _DEBUG_COMUNICACION
+      debug.print("[TCP_RV_CB] Recepcion de datos. Numero de datos recibidos: ");
+      debug.println(length);
+      debug.print("[TCP_RV_CB] Información recibida: ");
+      debug.println(tcp_data);
+  #endif
+
+  if (tcp_data[2] == WACK){
+    registro_confirmado = true;
+    tcp_recibido = true;
+    return;
+  }
+
+  if ((tcpdata = (uint8_t *) os_malloc (length*sizeof (uint8_t))) == NULL){
+    tcp_recibido = true;
+    return;
+  }
+
+  memcpy(tcpdata,reinterpret_cast<char*>(tcp_data),length);
 
   tcp_recibido = true;
 
