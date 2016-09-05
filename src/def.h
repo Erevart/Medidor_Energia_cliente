@@ -18,8 +18,8 @@
 /* -------------------------------------------------------------------------------------------------------------*/
 
 /* Parametros de Debug */
-#define _DEBUG_WIFI   // Muestra por puerto serie información relativa la configuracion wifi.
-#define _DEBUG_COMUNICACION // Muestra por puerto serie información relativa la comunicación TCP.
+//#define _DEBUG_WIFI   // Muestra por puerto serie información relativa la configuracion wifi.
+//#define _DEBUG_COMUNICACION // Muestra por puerto serie información relativa la comunicación TCP.
 //#define _DEBUG_MEMORIA  // Muestra información relativa a la escritura y lectura en memoria.
 //#define _DEBUG_RTC      // Muestra el tiempo de funcionamiento del dispositivo desde la ultima sincronización.
 //#define _DEBUG_RTC_TEST // Muestras el test de comparación entre las variables de tiempo del dispositovo.
