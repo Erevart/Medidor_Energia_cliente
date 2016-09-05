@@ -29,7 +29,6 @@ void setup() {
   /*****************/
   update_rtc_time(true);
 
-
   /*****************/
   /* EEPROM    */
   /*****************/
@@ -95,6 +94,8 @@ void loop() {
     *************************************/
     if (timecounter % loop2 == 0){
 
+      tcp_recevied_data();
+
     }
     else if ( (currentMillis - loop2_previousTime) >= 50){
       // Se guarda en el último instante de tiempo en el,
@@ -127,6 +128,12 @@ void loop() {
           tcp_comunication(usuario_conectado->ipdir);
         }
 
+    } else if ((currentMillis - loop3_previousTime) >= 1000) {
+      // Se guarda en el último instante de tiempo en el,
+      // que se ejecuta el contenido el loop3.
+      loop3_previousTime = currentMillis;
+
+      //tcp_recevied_data();
     }
 
     /**************************************

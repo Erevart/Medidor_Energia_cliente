@@ -169,6 +169,8 @@ os_timer_t *timerreset = NULL;            // Timer software para reset.
 unsigned long currentMillis = 0;          // Variable que indica el tiempo actual.
 unsigned long previousMillis = 0;         // Variable que indica el instante de tiempo en el que se realizo la ultima ejecucion del bucle principal.
 unsigned long loop2_previousTime = 0;     // Variable que indica el instante de tiempo en el que se ejecuto el loop2_
+unsigned long loop3_previousTime = 0;     // Variable que indica el instante de tiempo en el que se ejecuto el loop3_
+
 
 /* Aún en pruebas */
 uint32_t temp = 0;
@@ -181,7 +183,7 @@ uint32_t timecounter = 0;                 // Variable que indica el numero de it
 
 uint8_t modo_sinc = 0x00;                 // Variable que indica es estado en el que se encuentra la máquina de estado,
                                           // para la sincronización de los dispositivos.
-uint8_t stop_continue = '#';              // Determina si se cierra la comunicación tcp o se mantiene abierta.
+uint8_t *tcpdata = NULL;
 
 bool tcp_establecido = false;             // Indica que la conexión TPC se ha estblecido con el servidor.
 bool registro_confirmado = false;         // Variable utilizada para verifizar que la confirmación de
