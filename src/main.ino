@@ -16,8 +16,7 @@ extern "C" {
 
 #include "EEPROM.h"
 #include "def.h"
-#include "GPIO.h"
-#include "Memoria.h"
+#include "memoria.h"
 #include "comtcp.h"
 #include "confwifi.h"
 #include "rtctime.h"

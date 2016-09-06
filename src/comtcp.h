@@ -14,7 +14,7 @@
  * @param  : arg - puntero a la variable tipo espconn que determina la comunicación.
  * @return : none
  * Etiqueta debug : Todos los comentarios para depuración de esta función
-                   estarán asociados a la etiqueta: "TCP_DC_CB".
+                   estarán asociados a la etiqueta: "TCP_ST_CB".
  *******************************************************************************/
 void tcp_server_sent_cb(void *arg)
 {
@@ -40,8 +40,9 @@ void tcp_server_discon_cb(void *arg)
 {
   // Comunicación cerrada correctamente.
   tcp_desconectado = true;
-  tcp_establecido = false;
   transmision_finalizada = true;
+
+  tcp_establecido = false;
   tcp_recibido = false;
 
   #ifdef _DEBUG_COMUNICACION
@@ -54,6 +55,7 @@ void tcp_server_discon_cb(void *arg)
  * @brief  : Callback cuando la comunicación tcp es interrumpida. Indica que la
              comunicación tcp ha sido forzada a cerrarse.
  * @param  : arg - puntero a la variable tipo espconn que determina la comunicación.
+ * @param  : err - error que ha provocado el cierre de la comunicación.
  * @return : none
  * Etiqueta debug : Todos los comentarios para depuración de esta función
                    estarán asociados a la etiqueta: "TCP_RC_CB".
@@ -75,6 +77,7 @@ void tcp_server_recon_cb(void *arg, sint8 err){
     #endif
 
     /* AÚN NO COMPROBADO */
+    /*
     info_tcp = espconn_disconnect(esp_conn);
 
     time0 = millis();
@@ -92,9 +95,32 @@ void tcp_server_recon_cb(void *arg, sint8 err){
       debug.print("[TCP_RC_CB] Comunicacion TCP cerrada. Tiempo requerido: ");
       debug.println(millis()-time0);
     #endif
+    */
     /* AÚN NO COMPROBADO */
 }
 
+/******************************************************************************
+ * Función : tcp_recevied_data
+ * @brief  : Realiza el procesamiento de los datos recibidos por la comunicación TCP,
+ *            y guarda la información de acuerdo a su contenido.
+ * @param  : none
+ * @return : none
+ * Etiqueta debug : Todos los comentarios para depuración de esta función
+                   estarán asociados a la etiqueta: "TCP_RV_CB".
+  * ------------------------ *
+   Protocolo de comunicación
+  * ------------------------ *
+
+ |------------|--------------|---------------|---------|--------|----------|
+ | -- Start --|-- tcpcount --|-- ident_var --|-- Var --|- \...\-|-- Stop --|
+ |------------|--------------|---------------|---------|--------|----------|
+
+ Start         - uint8_t = ¿  || Byte de inicio de comunicación.
+ tcpcount      - uint8_t =    || Número de variables que serán recibidas.
+ ident_var     - uint8_t =    || Identificador de la variable recibida.
+ Var           - double       || Variable
+ Stop          - uint8_t = #  || Byte de fin de comunicación.
+ *******************************************************************************/
 void tcp_recevied_data(){
 
 
@@ -133,7 +159,7 @@ void tcp_recevied_data(){
   for (int j = 2; j < ( 2 + (tcpcount)*5 ) ; j += 5){
   // Falta identificar cuando se envia un variable de 64 bits.
   //  if (tcpdata[j] == TCP_U64)
-  //      lon = 64;
+  //      lon = 4;
 
       for (uint8_t i = 0; i < 8 + lon; i++)
         var.byte[i] = tcpdata[3+i];
@@ -203,22 +229,11 @@ void tcp_recevied_data(){
  * @brief  : Callback cuando se recibe información del cliente. Permite leer la
              la trama de datos recibida e identificar la operación solicitada.
  * @param  : arg - puntero a la variable tipo espconn que determina la comunicación.
+ * @param  : tcp_data - puntero al array de datos recibidos.
+ * @param  : length - longitud del array de datos.
  * @return : none
  * Etiqueta debug : Todos los comentarios para depuración de esta función
                    estarán asociados a la etiqueta: "TCP_RV_CB".
-  * ------------------------ *
-   Protocolo de comunicación
-  * ------------------------ *
-
- |------------|--------------|---------------|---------|--------|----------|
- | -- Start --|-- tcpcount --|-- ident_var --|-- Var --|- \...\-|-- Stop --|
- |------------|--------------|---------------|---------|--------|----------|
-
- Start (start) - uint8_t = ¿  || Byte de inicio de comunicación.
- tcpcount      - uint8_t =    || Número de variables que serán recibidas.
- ident_var     - *uint8_t =   || Identificador de la variable recibida.
- Var           - *double      || Variable
- Stop          - uint8_t = #  || Byte de fin de comunicación.
  *******************************************************************************/
 void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
 {
@@ -236,17 +251,13 @@ void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
     return;
   }
 
-  if ((tcpdata = (uint8_t *) os_malloc (length*sizeof (uint8_t))) == NULL){
-    tcp_recibido = true;
-    return;
-  }
-
-  memcpy(tcpdata,reinterpret_cast<char*>(tcp_data),length);
+  if ((tcpdata = (uint8_t *) os_malloc (length*sizeof (uint8_t))) != NULL)
+    memcpy(tcpdata,reinterpret_cast<char*>(tcp_data),length);
 
   tcp_recibido = true;
 
     #ifdef _DEBUG_COMUNICACION
-        debug.println("[TCP_RV_CB] FIN comunicacion.");
+        debug.println("[TCP_RV_CB] Fin recepción de datos");
     #endif
 }
 
@@ -262,24 +273,25 @@ void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
  *******************************************************************************/
 void tcp_listen(void *arg)
 {
-    #ifdef _DEBUG_COMUNICACION
-        debug.println("[TCPL] Comunicacion iniciada");
-    #endif
-    struct espconn *pesp_conn = static_cast<struct espconn *> (arg);
+  #ifdef _DEBUG_COMUNICACION
+    debug.println("[TCPL] Comunicacion iniciada");
+  #endif
 
-   /* Función llamada cuando se reciben datos */
-   espconn_regist_recvcb(pesp_conn, tcp_server_recv_cb);
-   /* Función llamada cuando la conexión es interrumpida */
-   espconn_regist_reconcb(pesp_conn, tcp_server_recon_cb);
-   /* Función llamada cuando se finaliza la conexión */
-   espconn_regist_disconcb(pesp_conn, tcp_server_discon_cb);
-   /* Función llamada cuando los datos se han enviado correctamente */
-   espconn_regist_sentcb(pesp_conn, tcp_server_sent_cb);
+  struct espconn *pesp_conn = static_cast<struct espconn *> (arg);
 
-   tcp_establecido = true;
-   tcp_desconectado = false;
-   transmision_finalizada = true;
-   tcp_recibido = false;
+  /* Función llamada cuando se reciben datos */
+  espconn_regist_recvcb(pesp_conn, tcp_server_recv_cb);
+  /* Función llamada cuando la conexión es interrumpida */
+  espconn_regist_reconcb(pesp_conn, tcp_server_recon_cb);
+  /* Función llamada cuando se finaliza la conexión */
+  espconn_regist_disconcb(pesp_conn, tcp_server_discon_cb);
+  /* Función llamada cuando los datos se han enviado correctamente */
+  espconn_regist_sentcb(pesp_conn, tcp_server_sent_cb);
+
+  tcp_establecido = true;
+  tcp_desconectado = false;
+  transmision_finalizada = true;
+  tcp_recibido = false;
 
 }
 
@@ -292,7 +304,7 @@ void tcp_listen(void *arg)
  * Etiqueta debug : Todos los comentarios para depuración de esta función
                    estarán asociados a la etiqueta: "TCPCM".
  *******************************************************************************/
-void tcp_comunication(const uint32_t host){
+void tcp_comunication(uint32_t host){
 
   union {
     uint32_t value;

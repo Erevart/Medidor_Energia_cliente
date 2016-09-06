@@ -131,13 +131,14 @@ void tcp_server_sent_cb(void *arg);
 void tcp_server_discon_cb(void *arg);
 void tcp_server_recon_cb(void *arg, sint8 err);
 void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length);
+void tcp_recevied_data();
 void tcp_listen(void *arg);
-void configWifi();
 bool check_connection(struct infousu *host);
 void tcp_comunication(const uint32_t host);
 
 // ESPWifi
 bool cmp_bssid(char *mac1, char *mac2);
+void configWifi();
 int8_t ins_usu (lista_usuarios *red, station_info *nuevo_usu);
 void sync_users(lista_usuarios *red);
 void del_user(lista_usuarios *red);
