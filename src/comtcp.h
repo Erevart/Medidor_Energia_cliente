@@ -106,7 +106,7 @@ void tcp_server_recon_cb(void *arg, sint8 err){
  * @param  : none
  * @return : none
  * Etiqueta debug : Todos los comentarios para depuración de esta función
-                   estarán asociados a la etiqueta: "TCP_RV_CB".
+                   estarán asociados a la etiqueta: "TRD".
   * ------------------------ *
    Protocolo de comunicación
   * ------------------------ *

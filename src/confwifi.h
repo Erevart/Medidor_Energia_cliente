@@ -10,7 +10,7 @@
 /******************************************************************************
  * Función : configWifi
  * @brief  : Establece la configuración de la red Wifi, la cual será utilizada para
-              actuar como cliente de un servidor. Parametros por defecto de la red para AP:
+              actuar como punto de acceso. Los parametros por defecto de la red son:
               IP: 192.168.1.0, Puerta de enlace: 192.168.1.255, Mascara: 255.255.255.0
               SSID: MCESP_'IDCHIP', contraseña: zxcvmnbv1234.
  * @param  : none
@@ -73,6 +73,7 @@ void configWifi(){
     debug.println(WiFi.softAPIP());
   #endif
 
+  // Se crea la variable de comunicación TPC, indicado el puerto de conexión.
   esp_conn = (struct espconn *)os_malloc((uint32)sizeof(struct espconn));
   esp_conn->type = ESPCONN_TCP;
   esp_conn->state = ESPCONN_NONE;
@@ -85,7 +86,7 @@ void configWifi(){
 
 /******************************************************************************
  * Función : check_connection
- * @brief  : Comprueba que el dispositivo indicado se encuentra conectado a la red, y es posible
+ * @brief  : Comprueba que el dispositivo indicado se encuentra conectado a la red, y si es posible
               establecer una conexión TCP con el sin problemas.
  * @param  : host - ip del dispositivo del que se desea comprobar que la conexion está establecida.
  * @return : true - La conexión entre los dipositivos se ha realizado correctamente.
@@ -99,7 +100,7 @@ bool check_connection(struct infousu *host){
     uint32_t value;
     uint8_t byte[4];
   } _host;
-  
+
   int8_t info_tcp;
   unsigned long time0;
 
@@ -293,41 +294,14 @@ bool check_connection(struct infousu *host){
   }
 }
 
-
- /******************************************************************************
-  * Función : cmp_bssid
-  * @brief  : Realiza la comparación entre dos bssid.
-  * @param  : mac1 - puntero al bssid del dispositivo 1
-  * @param  : mac2 - puntero al bssid del dispositivo 2
-  * @return : true - El bssid de ambos dispositivos son iguales.
-  * @return : false - El bssid de cada dispositivos es diferentes.
-  * Etiqueta debug : Todos los comentarios para depuración de esta función
-                    estarán asociados a la etiqueta: "CMPBSSID".
-  *******************************************************************************/
-bool cmp_bssid(char *mac1, char *mac2){
-
-   for (int i = 0; i<6; i++){
- #ifdef _DEBUG_BSSID
-     debug.print("[CMPBSSID] MAC1: ");
-     debug.println(mac1[i],HEX);
-     debug.print("[CMPBSSID] MAC2: ");
-     debug.println(mac2[i],HEX);
- #endif
-     if (mac1[i] != mac2[i])
-       return false;
-   }
-
-   return true;
- }
-
-
  /******************************************************************************
   * Función : ins_usu
   * @brief  : Actualiza el número y estado de usuarios en la lista de dispositivos registrados.
   * @param  : red - puntero a la lista de dispositivos registrados en la red.
-  * @param  : nuevo_usu - puntero al dispositivo conectado a la red.
-  * @return : >0 - El usuario ha sido registrado y actualizado en la lista de dipositivos correctamente.
-  * @return : <0 - El usuario no es registrado, debio a que no se cofirmado correctamente la conexión.
+  * @param  : nuevo_usu - puntero al nuevo dispositivo conectado a la red.
+  * @return : >0 - El usuario ha sido registrado y actualizado en la lista de dispositivos correctamente.
+  * @return : <0 - El usuario no es registrado, debido a que no se cofirmaó correctamente la conexión,
+  *                o no hay espacio en memoria RAM para nuevos usuarios
   * Etiqueta debug : Todos los comentarios para depuración de esta función
                     estarán asociados a la etiqueta: "INUSU".
   *******************************************************************************/
@@ -380,7 +354,7 @@ int8_t ins_usu (lista_usuarios *red, station_info *nuevo_usu){
       // Se comprueba si el usuario actual no enlaza con uno siguiente. Si es el
       // último eslabon se añade el nuero usario, de caso contrario se sigue
       // avanzando en la cadena.
-      if (cmp_bssid(reinterpret_cast<char*>((*usuario_actual)->bssid), reinterpret_cast<char*>(nuevo_usuario->bssid))){
+      if (os_strcmp( reinterpret_cast<char*>((*usuario_actual)->bssid), reinterpret_cast<char*>(nuevo_usuario->bssid) ) == 0 ){
       #ifdef _DEBUG_WIFI
         debug.println("[INUSU] Usuario ya registrado");
       #endif
@@ -487,7 +461,7 @@ void sync_users(lista_usuarios *red){
             Serial.println("[AEU] Seleciono usuario nuevo");
       #endif
       // Si el bssid es diferente se indica que el usuario no es detectado, y por lo tanto no esta conectado.
-      if (!cmp_bssid(reinterpret_cast<char*>((*usuario_actual)->bssid), reinterpret_cast<char*>(infored_actual->bssid))){
+      if (os_strcmp(reinterpret_cast<char*>((*usuario_actual)->bssid), reinterpret_cast<char*>(infored_actual->bssid)) != 0 ){
         // Al no ser encontrado el dispositivo registrado en la lista de usuarios conectados se indica que se encuentra
         // desconectado.
         (*usuario_actual)->estado = false;
@@ -574,7 +548,7 @@ void sync_users(lista_usuarios *red){
 
  /******************************************************************************
   * Función : del_user
-  * @brief  : Actualiza el número de usuarios y su estado registrados en la red.
+  * @brief  : Borra los usuarios registrados en la red.
   * @param  : red - puntero a la lista de dispositivos registrados en la red.
   * @return : none
   * Etiqueta debug : Todos los comentarios para depuración de esta función
