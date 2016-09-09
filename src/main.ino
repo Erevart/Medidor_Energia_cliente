@@ -29,7 +29,7 @@ void setup() {
   update_rtc_time(true);
 
   /*****************/
-  /* EEPROM    */
+  /* Flash    */
   /*****************/
 
    EEPROM.begin((MAX_USUARIOS*6 + 2)*sizeof(uint8_t));
@@ -50,7 +50,7 @@ void setup() {
 	/******************************/
 	/*   Configuración Wifi       */
 	/******************************/
-    checkEEPROM();
+    checkFlash();
 
   /******************************/
   /*   Configuración Wifi       */

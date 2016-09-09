@@ -199,19 +199,19 @@ void tcp_recevied_data(){
 
 
           debug.print("Instante de tiempo de sincronizacion: ");
-          debug.printLLNumber(((usuario_conectado->time_sync) / 10000000) / 100,10);
+          debug.print((uint32_t) ( ((usuario_conectado->time_sync) / 10000000) / 100 ));
           debug.println();
           debug.print("Tiempo transcurrido desde la sincronizacion: ");
           uint64_t t = ( ( get_rtc_time()-usuario_conectado->time_sync) / 10000000);
-          debug.printLLNumber( t/100,10);
+          debug.print( (uint32_t) ( t/100) );
           debug.print(".");
-          debug.printLLNumber( t % 100,10);
+          debug.print( (uint32_t) ( t % 100) ,10);
           debug.println();
           debug.print("Tiempo indicado por el servidor ");
           t = ( ( var.long_value ) / 10000000);
-          debug.printLLNumber( t/100,10);
+          debug.print( (uint32_t) (t/100));
           debug.print(".");
-          debug.printLLNumber( t % 100,10);
+          debug.print( (uint32_t) ( t % 100) );
           debug.println();
           break;
     //  #endif

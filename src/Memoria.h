@@ -2,7 +2,7 @@
  /******************************************************************************
   * Función : nvrRead_u8
   * @brief  : Escribe una variable de 8 bits en la memoria.
-  * @param  : memaddr - direccion de memoria a escribir.
+  * @param  : memaddr - dirección de memoria a escribir.
   * @param  : value - dato a guardar en la dirección indicada .
   * @return : none
   *******************************************************************************/
@@ -15,7 +15,7 @@ void nvrWrite_u8(uint8_t value, unsigned int memaddr) {
   * Función : nvrRead_u8
   * @brief  : Lee una variable de 8 bits en la memoria
   * @param  : memaddr - direccion de memoria a leer.
-  * @return : devuelve la información guardada en la direccion de memoria indicada.
+  * @return : devuelve la información guardada en la dirección de memoria indicada.
   *******************************************************************************/
 uint8_t nvrRead_u8(unsigned int memaddr) {
 
@@ -23,16 +23,15 @@ uint8_t nvrRead_u8(unsigned int memaddr) {
 }
 
 /******************************************************************************
- * Función : saveEEPROM
- * @brief  : Lee de la memoria EEPROM los usuarios registrados y los registra en
-             la estructura de datos "red".
+ * Función : saveFlash
+ * @brief  : Guarda en la memoria Flash los usuarios registrados.
  * @param  : red - puntero de la estructura de datos donde está el número
               de usuarios registrados y su correspondiente MAC.
  * @return : none
  * Etiqueta debug : Todos los comentarios para depuración de esta función
                    estarán asociados a la etiqueta: "MGR".
  *******************************************************************************/
-void saveEEPROM(lista_usuarios *red){
+void saveFlash(lista_usuarios *red){
 
   if ( (red->numusu == 0) || red->numusu == nvrRead_u8(1) ){
   #ifdef _DEBUG_MEMORIA
@@ -87,15 +86,16 @@ void saveEEPROM(lista_usuarios *red){
 
 /******************************************************************************
  * Función : lee_red
- * @brief  : Lee de la memoria EEPROM los usuarios registrados y los registra en
-             la estructura de datos "red".
+ * @brief  : Lee de la memoria Flash los usuarios registrados y guardados en
+ *           anteriores sesiones. Posteriormente almacena dicha información
+ *           en la memoria RAM.
  * @param  : red - puntero de la estructura de datos donde serán guardado el número
               de usuarios registrados y su correspondiente MAC.
  * @return : none
  * Etiqueta debug : Todos los comentarios para depuración de esta función
                    estarán asociados a la etiqueta: "MLR".
  *******************************************************************************/
-void readEEPROM(lista_usuarios *red ){
+void readFlash(lista_usuarios *red ){
 
   infousu *nuevo_usuario;
   infousu **usuario_actual = &red->usuarios;
@@ -146,20 +146,20 @@ void readEEPROM(lista_usuarios *red ){
 }
 
 /******************************************************************************
- * Función : checkEEPROM
+ * Función : checkFlash
  * @brief  : Comprueba si hay usuarios registrados en memoria
  * @param  : none
  * @return : none
  * Etiqueta debug : Todos los comentarios para depuración de esta función
                    estarán asociados a la etiqueta: "MCK".
  *******************************************************************************/
-void checkEEPROM(){
+void checkFlash(){
   // Se comprueba si se han guardado parametros de usuarios previamente.
     if (nvrRead_u8(0) == DATOS_WIFI){
     #ifdef _DEBUG_MEMORIA
       debug.println("[MCK] Lee de memoria.");
     #endif
-      readEEPROM(&red_usuarios);
+      readFlash(&red_usuarios);
     }
     #ifdef _DEBUG_MEMORIA
       else{

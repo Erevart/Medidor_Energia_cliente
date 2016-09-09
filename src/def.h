@@ -150,9 +150,9 @@ void isrWifi (WiFiEvent_t event);
 // Memoria
 void nvrWrite_u8(uint8_t value, unsigned int memaddr);
 uint8_t nvrRead_u8(unsigned int memaddr);
-void saveEEPROM(lista_usuarios *red);
-void readEEPROM(lista_usuarios *red );
-void checkEEPROM();
+void saveFlash(lista_usuarios *red);
+void readFlash(lista_usuarios *red );
+void checkFlash();
 
 // rtctime
 void update_rtc_time(bool reset);

@@ -636,7 +636,7 @@ void check_red(lista_usuarios *red){
   #endif
 
   // Se guarda los usuarios registrados en memoria.
-  saveEEPROM(&red_usuarios);
+  saveFlash(&red_usuarios);
 
   ets_intr_unlock();
 }
