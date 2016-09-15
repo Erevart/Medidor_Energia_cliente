@@ -28,12 +28,6 @@ void setup() {
   /*****************/
   update_rtc_time(true);
 
-  /*****************/
-  /* Flash    */
-  /*****************/
-
-   EEPROM.begin((MAX_USUARIOS*6 + 2)*sizeof(uint8_t));
-
   /**********************************/
   /*   Definicion Puerto I/O        */
   /**********************************/
@@ -47,9 +41,15 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
 
-	/******************************/
-	/*   Configuración Wifi       */
-	/******************************/
+  /*****************/
+  /* Flash    */
+  /*****************/
+
+   EEPROM.begin((MAX_USUARIOS*6 + 2)*sizeof(uint8_t));
+
+	/*********************************************/
+	/*   Comprueba si hay datos en memoria       */
+	/*********************************************/
     checkFlash();
 
   /******************************/
@@ -86,14 +86,14 @@ void loop() {
     *************************************/
     if (timecounter % loop1 == 0){
 
+      tcp_recevied_data();
+
    }
 
     /**************************************
       Frecuencia de Refresco: 25 Hz
     *************************************/
     if (timecounter % loop2 == 0){
-
-      tcp_recevied_data();
 
     }
     else if ( (currentMillis - loop2_previousTime) >= 50){

@@ -45,6 +45,7 @@
 /********************************/
 
 #define GPIO_SINC  0   // GPIO 0
+#define GPIO_RESET  0   // GPIO 0
 #define GPIO3  3 // GPIO 3
 #define GPIO4  4 // GPIO 4
 #define GPIO5  5 // GPIO 5

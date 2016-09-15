@@ -424,14 +424,14 @@ int8_t ins_usu (lista_usuarios *red, station_info *nuevo_usu){
   return 0;
  }
 
- /******************************************************************************
-  * Función : sync_users
-  * @brief  : Actualiza el estado de los usuarios ya registrados.
-  * @param  : red - puntero a la lista de dispositivos registrados en la red.
-  * @return : none
-  * Etiqueta debug : Todos los comentarios para depuración de esta función
-                    estarán asociados a la etiqueta: "AEU".
-  *******************************************************************************/
+/******************************************************************************
+* Función : sync_users
+* @brief  : Actualiza el estado de los usuarios ya registrados.
+* @param  : red - puntero a la lista de dispositivos registrados en la red.
+* @return : none
+* Etiqueta debug : Todos los comentarios para depuración de esta función
+                  estarán asociados a la etiqueta: "AEU".
+*******************************************************************************/
 void sync_users(lista_usuarios *red){
 
   // Si el número de usuarios registrados o conectados es cero no se realizada nada.
