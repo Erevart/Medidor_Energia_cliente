@@ -39,6 +39,7 @@ void configWifi(){
   wifi_softap_get_config(config);
   strcpy(reinterpret_cast<char*>(config->ssid),ssid);
   strcpy(reinterpret_cast<char*>(config->password), CONTRASENA);
+  config->ssid_len = 0;
   config->authmode = AUTH_WPA_WPA2_PSK;
   config->max_connection = MAX_USUARIOS;
   config->ssid_hidden = HIDDEN_DEFAULT;
@@ -128,6 +129,7 @@ bool check_connection(struct infousu *host){
   esp_conn->proto.tcp->remote_ip[2] = _host.byte[2];
   esp_conn->proto.tcp->remote_ip[3] = _host.byte[3];
   espconn_regist_connectcb(esp_conn, tcp_listen);
+  yield();
 
 
   #ifdef _DEBUG_COMUNICACION
@@ -163,6 +165,9 @@ bool check_connection(struct infousu *host){
     }
   #endif
 
+  #ifdef _DEBUG_COMUNICACION
+  debug.println("[CFCNX] Conexion establecida?");
+  #endif
   // Se espera a que la comunicación tcp sea establecida.
   time0 = millis();
   while (!tcp_establecido) {
@@ -171,10 +176,6 @@ bool check_connection(struct infousu *host){
       return false;
     }
   }
-
-  #ifdef _DEBUG_COMUNICACION
-  debug.println("[CFCNX] Conexion establecida?");
-  #endif
 
   #ifdef _DEBUG_COMUNICACION
   debug.print("[CFCNX] Si, la conexion se ha establecido. Tiempo requerido: ");
