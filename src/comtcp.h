@@ -245,6 +245,9 @@ void tcp_server_recv_cb(void *arg, char *tcp_data, unsigned short length)
       debug.println(tcp_data);
   #endif
 
+  for (int i=length; i>0; i--)
+    Serial.println((int)(tcp_data[i]));
+
   if (tcp_data[2] == WACK){
     registro_confirmado = true;
     tcp_recibido = true;
